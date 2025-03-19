@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { Navbar } from "@/app/components/Navbar"
 import { Footer } from "@/app/components/Footer"
 import { useState, useEffect } from "react"
@@ -9,10 +10,9 @@ import Link from "next/link"
 import ContentCreator from "@/public/icons/contentCreatorIcon.png"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
-import { AuthService } from "@/lib/auth"
+import { AuthService } from "@/services/auth-service"
 import type { LoginRequest } from "@/types/auth"
-import { UserRole } from "@/types/auth"
-import { debugAuthState } from "@/lib/debug-auth"
+import { forceContentCreatorRole } from "@/lib/auth-debug"
 
 export default function ContentCreatorLogin() {
     const router = useRouter()
@@ -25,6 +25,10 @@ export default function ContentCreatorLogin() {
     const [successMessage, setSuccessMessage] = useState("")
 
     useEffect(() => {
+        // Setze die Rolle auf CONTENT_CREATOR, da wir auf der Content Creator Login-Seite sind
+        console.log("Content Creator Login Page: Setting role to CONTENT_CREATOR")
+        forceContentCreatorRole()
+
         // Check for query parameters that might indicate a successful action
         const registered = searchParams.get("registered")
         if (registered === "true") {
@@ -40,9 +44,6 @@ export default function ContentCreatorLogin() {
         if (verified === "true") {
             setSuccessMessage("Email verified successfully! You can now log in.")
         }
-
-        // Debug auth state on component mount
-        debugAuthState()
     }, [searchParams])
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -57,34 +58,24 @@ export default function ContentCreatorLogin() {
         }
 
         try {
-            // Normalize the email address
+            // Normalisieren der E-Mail-Adresse
             const normalizedEmail = email.trim().toLowerCase()
             console.log("Submitting login with normalized email:", normalizedEmail)
 
-            // Store this email as a content creator email
-            if (typeof window !== "undefined") {
-                const storedEmails = localStorage.getItem("contentCreatorEmails") || "[]"
-                const emailList = JSON.parse(storedEmails) as string[]
-                if (!emailList.includes(normalizedEmail)) {
-                    emailList.push(normalizedEmail)
-                    localStorage.setItem("contentCreatorEmails", JSON.stringify(emailList))
-                    console.log("Stored content creator email:", normalizedEmail)
-                }
-            }
+            // Erzwingen Sie die CONTENT_CREATOR-Rolle für diese Anmeldung
+            forceContentCreatorRole()
 
-            // Add explicit content creator role flag
             const loginRequest: LoginRequest = {
                 email: normalizedEmail,
                 password,
                 rememberMe,
-                role: UserRole.CONTENT_CREATOR, // Explicitly set role to CONTENT_CREATOR
-                isContentCreator: true, // Additional flag
+                // Explizit als CONTENT_CREATOR markieren
+                role: "CONTENT_CREATOR",
+                isContentCreator: true,
             }
 
-            console.log("Login request with explicit role:", loginRequest)
             await login(loginRequest)
-            console.log("Login successful, redirection should happen automatically")
-            // Redirection now happens automatically in the useAuth hook
+            // Die Weiterleitung erfolgt jetzt automatisch im useAuth-Hook
         } catch (err: any) {
             if (err.message && err.message.includes("not verified")) {
                 setError("Your account is not verified. Please check your email for verification instructions.")

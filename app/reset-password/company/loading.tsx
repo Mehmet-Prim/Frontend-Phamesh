@@ -1,3 +1,10 @@
+import { Spinner } from "@/components/ui/spinner"
+
 export default function Loading() {
-    return null
+    return (
+        <div className="flex justify-center items-center min-h-screen">
+            <Spinner size="lg" />
+        </div>
+    )
 }
+

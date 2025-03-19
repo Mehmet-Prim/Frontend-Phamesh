@@ -1,116 +1,116 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
+// Funktion zum Setzen der Rolle basierend auf dem Pfad
+function setRoleBasedOnPath(request: NextRequest): NextResponse {
+    const path = request.nextUrl.pathname;
+    const response = NextResponse.next();
 
-function isUserContentCreator(request: NextRequest): boolean {
-    const USER_ROLE_COOKIE = "user_role";
-    const USER_ROLE_RAW_COOKIE = "user_role_raw";
-    const USER_TYPE_COOKIE = "user_type";
-    const USER_IS_CONTENT_CREATOR = "user_is_content_creator";
-    const USER_IS_COMPANY = "user_is_company";
-
-    // Überprüfen Sie zuerst, ob der Benutzer explizit als COMPANY markiert ist
-    const isCompany = request.cookies.get(USER_IS_COMPANY)?.value === "true";
-    if (isCompany) {
-        console.log("Middleware: User is explicitly marked as COMPANY");
-        return false;
+    if (path.includes("/company")) {
+        response.cookies.set("user_role", "ROLE_COMPANY", { path: "/" });
+        response.cookies.set("user_role_raw", "COMPANY", { path: "/" });
+        response.cookies.set("user_type", "COMPANY", { path: "/" });
+        response.cookies.set("user_is_content_creator", "false", { path: "/" });
+        response.cookies.set("user_is_company", "true", { path: "/" });
+    } else if (path.includes("/content-creator")) {
+        response.cookies.set("user_role", "ROLE_CONTENT_CREATOR", { path: "/" });
+        response.cookies.set("user_role_raw", "CONTENT_CREATOR", { path: "/" });
+        response.cookies.set("user_type", "CONTENT_CREATOR", { path: "/" });
+        response.cookies.set("user_is_content_creator", "true", { path: "/" });
+        response.cookies.set("user_is_company", "false", { path: "/" });
     }
 
-    const userType = request.cookies.get(USER_TYPE_COOKIE)?.value;
-    if (userType === "COMPANY") {
-        console.log("Middleware: User type is COMPANY");
-        return false;
-    }
-
-    const userRole = request.cookies.get(USER_ROLE_COOKIE)?.value;
-    if (userRole && userRole.toUpperCase().includes("COMPANY")) {
-        console.log("Middleware: User role contains COMPANY");
-        return false;
-    }
-
-    const userRoleRaw = request.cookies.get(USER_ROLE_RAW_COOKIE)?.value;
-    if (userRoleRaw && userRoleRaw.toUpperCase().includes("COMPANY")) {
-        console.log("Middleware: User raw role contains COMPANY");
-        return false;
-    }
-
-    // Wenn keine der obigen Bedingungen zutrifft, handelt es sich um einen Content Creator
-    return true;
+    return response;
 }
 
-// Helper function to check if a user is authenticated
+// Funktion zum Überprüfen, ob der Benutzer authentifiziert ist
 function isAuthenticated(request: NextRequest): boolean {
-    const TOKEN_COOKIE = "auth_token"
-    return !!request.cookies.get(TOKEN_COOKIE)?.value
+    const token = request.cookies.get("token")?.value;
+    return !!token;
 }
 
-export function middleware(request: NextRequest) {
-    const path = request.nextUrl.pathname
+// Funktion zum Überprüfen, ob der Benutzer ein Content Creator ist
+function isUserContentCreator(request: NextRequest): boolean {
+    const userIsContentCreator = request.cookies.get("user_is_content_creator")?.value;
+    return userIsContentCreator === "true";
+}
 
-    console.log("Middleware checking path:", path)
+// Public paths that don't require authentication
+const publicPaths: string[] = [
+    "/",
+    "/select-role",
+    "/login/company",
+    "/login/content-creator",
+    "/register/company",
+    "/register/content-creator",
+    "/forgot-password/company",
+    "/forgot-password/content-creator",
+    "/reset-password/company",
+    "/reset-password/content-creator",
+    "/verify-email",
+    "/services",
+    "/news",
+    "/about",
+    "/contact",
+];
 
-    // Public paths that don't require authentication
-    const publicPaths = [
-        "/",
-        "/select-role",
-        "/login/company",
-        "/login/content-creator",
-        "/register/company",
-        "/register/content-creator",
-        "/forgot-password/company",
-        "/forgot-password/content-creator",
-        "/reset-password/company",
-        "/reset-password/content-creator",
-        "/verify-email",
-        "/services",
-        "/news",
-        "/about",
-        "/contact",
-    ]
+// Middleware-Funktion
+export function middleware(request: NextRequest): NextResponse {
+    const path = request.nextUrl.pathname;
+
+    // Ignoriere statische Dateien und API-Routen
+    if (
+        path.startsWith("/_next/") || // Next.js interne Dateien
+        path.startsWith("/api/") ||   // API-Routen
+        path.startsWith("/static/") || // Statische Dateien
+        path.includes(".") // Dateien mit Erweiterungen (z. B. .css, .js, .png)
+    ) {
+        return NextResponse.next();
+    }
+
+    console.log("Middleware checking path:", path);
+
+    // Setze die Rolle basierend auf dem Pfad
+    if (path.includes("/login/") || path.includes("/register/") || path.includes("/dashboard/")) {
+        return setRoleBasedOnPath(request);
+    }
 
     // Check if the path is public
-    const isPublicPath = publicPaths.some((publicPath) => path === publicPath || path.startsWith(publicPath + "/"))
+    const isPublicPath = publicPaths.some((publicPath) => path === publicPath || path.startsWith(publicPath + "/"));
 
     if (isPublicPath) {
-        return NextResponse.next()
+        return NextResponse.next();
     }
 
     // If not authenticated, redirect to login
     if (!isAuthenticated(request)) {
-        console.log("No token found, redirecting to select-role")
-        return NextResponse.redirect(new URL("/select-role", request.url))
+        console.log("No token found, redirecting to select-role");
+        return NextResponse.redirect(new URL("/select-role", request.url));
+    }
+
+    // Wenn der Pfad explizit ein Company-Pfad ist, erlaube den Zugriff ohne weitere Überprüfung
+    if (path.startsWith("/dashboard/company")) {
+        console.log("Middleware - Allowing access to company dashboard without role check");
+        return NextResponse.next();
+    }
+
+    // Wenn der Pfad explizit ein Content-Creator-Pfad ist, erlaube den Zugriff ohne weitere Überprüfung
+    if (path.startsWith("/dashboard/content-creator")) {
+        console.log("Middleware - Allowing access to content creator dashboard without role check");
+        return NextResponse.next();
     }
 
     // Check if the user is a content creator with improved logging
-    const isUserContentCreatorValue = isUserContentCreator(request)
-    console.log("Middleware - Is user content creator:", isUserContentCreatorValue)
+    const isUserContentCreatorValue = isUserContentCreator(request);
+    console.log("Middleware - Is user content creator:", isUserContentCreatorValue);
 
     // If the path is /dashboard, redirect based on role
     if (path === "/dashboard" || path === "/dashboard/") {
-        if (isUserContentCreatorValue) {
-            console.log("Middleware - Redirecting to content creator dashboard from /dashboard")
-            return NextResponse.redirect(new URL("/dashboard/content-creator", request.url))
-        } else {
-            console.log("Middleware - Redirecting to company dashboard from /dashboard")
-            return NextResponse.redirect(new URL("/dashboard/company", request.url))
-        }
+        const redirectPath = isUserContentCreatorValue ? "/dashboard/content-creator" : "/dashboard/company";
+        console.log(`Middleware - Redirecting to ${redirectPath} from /dashboard`);
+        return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 
-    // If the path leads to the wrong dashboard, redirect to the correct dashboard
-    if (path.startsWith("/dashboard/company") && isUserContentCreatorValue) {
-        console.log("Middleware - Redirecting content creator from company dashboard to content creator dashboard")
-        return NextResponse.redirect(new URL("/dashboard/content-creator", request.url))
-    }
-
-    if (path.startsWith("/dashboard/content-creator") && !isUserContentCreatorValue) {
-        console.log("Middleware - Redirecting company from content creator dashboard to company dashboard")
-        return NextResponse.redirect(new URL("/dashboard/company", request.url))
-    }
-
-    return NextResponse.next()
-}
-
-export const config = {
-    matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+    return NextResponse.next();
 }
 

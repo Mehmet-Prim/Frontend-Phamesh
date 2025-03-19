@@ -10,7 +10,7 @@ import CompanyIcon from "@/public/icons/companyIcon.png"
 import Image from "next/image"
 import { useAuth } from "@/hooks/useAuth"
 import type { LoginRequest } from "@/types/auth"
-import { AuthService } from "@/services/auth.service"
+import { AuthService } from "@/services/auth-service"
 // Fügen Sie den Import für forceCompanyRole hinzu
 import { forceCompanyRole } from "@/lib/auth-debug"
 
@@ -25,6 +25,10 @@ export default function CompanyLogin() {
     const [successMessage, setSuccessMessage] = useState("")
 
     useEffect(() => {
+        // Setze die Rolle auf COMPANY, da wir auf der Company-Login-Seite sind
+        console.log("Company Login Page: Setting role to COMPANY")
+        forceCompanyRole()
+
         // Check for query parameters that might indicate a successful action
         const registered = searchParams.get("registered")
         if (registered === "true") {

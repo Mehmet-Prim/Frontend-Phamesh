@@ -1,5 +1,6 @@
-import api, { API_PREFIX } from "./api"
-import type { ApiResponse } from "@/types/auth"
+import { api } from "@/lib/api"
+import { API_PREFIX } from "@/lib/api-constants"
+import type { ApiResponse } from "@/types/api"
 import type { Company } from "@/types/models"
 
 export const CompanyService = {

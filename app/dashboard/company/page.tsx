@@ -32,6 +32,7 @@ export default function CompanyDashboard() {
             }, 1500)
         } catch (error) {
             setSyncStatus("Fehler bei der Synchronisierung. Bitte versuchen Sie es erneut.")
+            console.error(error)
         }
     }
 

@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-import {useState} from "react"
+import { useState } from "react"
 
-import {Navbar} from "@/app/components/Navbar"
-import {Footer} from "@/app/components/Footer"
+import { Navbar } from "@/app/components/Navbar"
+import { Footer } from "@/app/components/Footer"
 import Link from "next/link"
 import Company from "@/public/icons/companyIcon.png"
 import Image from "next/image"
-import {useAuth} from "@/hooks/useAuth"
-import {UserRole} from "@/types/auth";
+import { useAuth } from "@/hooks/useAuth"
+import { UserRole } from "@/types/auth"
 
 export default function CompanyForgotPassword() {
     const { forgotPassword, loading } = useAuth()

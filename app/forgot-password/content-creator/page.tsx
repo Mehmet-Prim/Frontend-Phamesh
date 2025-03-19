@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-import {useState} from "react"
+import { useState } from "react"
 
-import {Navbar} from "@/app/components/Navbar"
-import {Footer} from "@/app/components/Footer"
+import { Navbar } from "@/app/components/Navbar"
+import { Footer } from "@/app/components/Footer"
 import Link from "next/link"
 import ContentCreator from "@/public/icons/contentCreatorIcon.png"
 import Image from "next/image"
-import {useAuth} from "@/hooks/useAuth"
-import {UserRole} from "@/types/auth";
+import { useAuth } from "@/hooks/useAuth"
+import { UserRole } from "@/types/auth"
 
 export default function ContentCreatorForgotPassword() {
     const { forgotPassword, loading } = useAuth()

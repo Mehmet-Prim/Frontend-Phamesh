@@ -1,4 +1,15 @@
-import type { User } from "./auth"
+// User model matching backend
+export interface User {
+    id?: string | number
+    email: string
+    password?: string
+    role?: string
+    enabled?: boolean
+    locked?: boolean
+    createdAt?: string
+    updatedAt?: string
+    emailVerified?: boolean
+}
 
 // Company model matching backend
 export interface Company extends User {

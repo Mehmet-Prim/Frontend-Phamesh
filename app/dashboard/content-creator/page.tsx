@@ -1,12 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Navbar } from "@/app/components/Navbar"
-import { Footer } from "@/app/components/Footer"
 import { useAuth } from "@/hooks/useAuth"
-import { ContentCreatorService } from "@/lib/content-creator"
+import { ContentCreatorService } from "@/services/content-creator"
 import type { ContentCreator } from "@/types/models"
-import {AuthService} from "@/lib/auth";
+import {AuthService} from "@/services/auth-service";
 import {router} from "next/client";
 
 export default function DashboardContentCreator() {

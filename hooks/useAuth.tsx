@@ -2,12 +2,11 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { AuthService } from "@/lib/auth"
-import type { LoginRequest, RegistrationRequest, PasswordResetRequest, User } from "@/types/auth"
-import { UserRole } from "@/types/auth"
-import api from "@/lib/api"
-import { debugAuthState } from "@/lib/debug-auth"
-import { syncUserRoleWithBackend, forceCompanyRole } from "@/lib/auth-debug"
+import { authService } from "@/services/auth-service"
+import type { LoginRequest, RegistrationRequest, PasswordResetRequest } from "@/types/auth"
+import type { UserRole } from "@/types/auth"
+import { debugAuthState } from "@/lib/auth-debug"
+import {User} from "@/types/models";
 
 interface AuthContextType {
     user: User | null
@@ -15,11 +14,11 @@ interface AuthContextType {
     login: (data: LoginRequest) => Promise<void>
     registerCompany: (data: RegistrationRequest) => Promise<void>
     registerContentCreator: (data: RegistrationRequest) => Promise<void>
-    forgotPassword: (email: string, role: string) => Promise<void>
+    forgotPassword: (email: string, role: UserRole) => Promise<void>
     resetPassword: (data: PasswordResetRequest) => Promise<void>
     logout: () => void
     isAuthenticated: boolean
-    userRole: string | null
+    userRole: UserRole | null
     syncRole: () => Promise<string | null>
 }
 
@@ -29,19 +28,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [userRole, setUserRole] = useState<string | null>(null)
+    const [userRole, setUserRole] = useState<UserRole | null>(null)
     const router = useRouter()
 
     useEffect(() => {
         // Check if user is logged in
         const checkAuth = async () => {
-            const isAuth = AuthService.isAuthenticated()
+            const isAuth = authService.isAuthenticated()
             setIsAuthenticated(isAuth)
 
             if (isAuth) {
                 try {
                     // Try to load current user
-                    const currentUser = await AuthService.getCurrentUser()
+                    const currentUser = authService.getCurrentUser()
                     if (currentUser) {
                         setUser(currentUser)
                         setUserRole(currentUser.role || null)
@@ -49,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 } catch (error) {
                     console.error("Error loading current user:", error)
                     // Log out on error
-                    AuthService.logout()
+                    authService.logout()
                     setIsAuthenticated(false)
                 }
             }
@@ -60,90 +59,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkAuth()
     }, [])
 
-    // Neue Funktion zur Synchronisierung der Rolle
-    const syncRole = async () => {
-        return await syncUserRoleWithBackend()
-    }
-
     const login = async (data: LoginRequest) => {
         setLoading(true)
         try {
             console.log("Attempting login with:", data.email)
-
-            // Wenn wir uns auf der Company-Login-Seite befinden, erzwingen wir die COMPANY-Rolle
-            const isFromCompanyLogin = typeof window !== "undefined" && window.location.pathname.includes("/login/company")
-            if (isFromCompanyLogin) {
-                console.log("Login from company page, will force COMPANY role after login")
-            }
-
-            const response = await AuthService.login(data)
+            const response = await authService.login(data)
             console.log("Login response:", response)
 
-            if (response.success && response.data) {
+            if (response) {
                 // Get the user from the response
-                const user = response.data.user
+                const user = response.user
                 console.log("User data received:", user)
-
-                // Wenn wir uns auf der Company-Login-Seite befinden, erzwingen wir die COMPANY-Rolle
-                if (isFromCompanyLogin) {
-                    console.log("Forcing COMPANY role based on login page")
-                    forceCompanyRole()
-
-                    // Aktualisieren Sie auch die Benutzerrolle im Zustand
-                    user.role = "COMPANY"
-                } else {
-                    // Synchronisiere die Rolle mit dem Backend
-                    console.log("Synchronizing role with backend")
-                    await syncUserRoleWithBackend()
-                }
-
                 setUser(user)
                 setIsAuthenticated(true)
                 setUserRole(user?.role || null)
 
                 console.log("User role set to:", user?.role)
 
-                // Debug the auth state
-                debugAuthState()
+                // Determine redirect path based on role
+                const isContentCreator = user?.role === "CONTENT_CREATOR"
+                const redirectPath = isContentCreator ? "/dashboard/content-creator" : "/dashboard/company"
 
-                // Bestimmen Sie das Ziel basierend auf dem aktuellen Pfad
-                if (isFromCompanyLogin) {
-                    console.log("User logged in from company login page, redirecting to company dashboard")
-                    window.location.href = "/dashboard/company"
-                    return
-                }
+                console.log(`Redirecting to ${redirectPath}`)
 
-                // Wenn wir von der Content-Creator-Login-Seite kommen, leiten wir zum Content-Creator-Dashboard weiter
-                const isFromContentCreatorLogin =
-                    typeof window !== "undefined" && window.location.pathname.includes("/login/content-creator")
-
-                if (isFromContentCreatorLogin) {
-                    console.log("User logged in from content creator login page, redirecting to content creator dashboard")
-                    window.location.href = "/dashboard/content-creator"
-                    return
-                }
-
-                // Fallback zur normalen Rollenüberprüfung
-                const isCompanyUser =
-                    user?.role && (user.role.toUpperCase() === "COMPANY" || user.role.toUpperCase().includes("COMPANY"))
-
-                console.log("Is company user based on role check:", isCompanyUser)
-
-                if (isCompanyUser) {
-                    console.log("Redirecting to company dashboard based on role")
-                    window.location.href = "/dashboard/company"
-                } else {
-                    const isContentCreator = api.isContentCreator()
-                    console.log("Is content creator check:", isContentCreator)
-
-                    if (isContentCreator) {
-                        console.log("Redirecting to content creator dashboard based on role check")
-                        window.location.href = "/dashboard/content-creator"
-                    } else {
-                        console.log("No clear role determined, defaulting to company dashboard")
-                        window.location.href = "/dashboard/company"
-                    }
-                }
+                // Use router.push for client-side navigation
+                router.push(redirectPath)
             } else {
                 console.log("Login unsuccessful or missing data:", response)
             }
@@ -155,21 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    // Rest of the code remains the same...
     const registerCompany = async (data: RegistrationRequest) => {
         setLoading(true)
         try {
             console.log("Registering company in hook:", data)
-
-            // Ensure the role is set to COMPANY
-            const companyData = {
-                ...data,
-                role: UserRole.COMPANY,
-                userType: "COMPANY",
-                isCompany: true,
-            }
-
-            const response = await AuthService.registerCompany(companyData)
+            const response = await authService.registerCompany(data)
 
             if (response && response.success) {
                 console.log("Company registration successful:", response)
@@ -191,25 +121,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             console.log("Registering content creator in hook:", data)
 
-            // Use the same approach as for company registration
+            // Ensure all required fields are present
             const enhancedData = {
                 ...data,
-                // Ensure all required fields are present
-                companyName: data.companyName || `Creator Studio - ${data.firstName} ${data.lastName}`,
-                companySize: data.companySize || "1-10",
-                contactName: data.contactName || `${data.firstName} ${data.lastName}`,
-                industry: data.industry || "Content Creation",
-                website:
-                    data.website || `https://creator.example.com/${data.firstName.toLowerCase()}-${data.lastName.toLowerCase()}`,
                 // Add the role
-                role: UserRole.CONTENT_CREATOR,
+                role: "CONTENT_CREATOR",
                 userType: "CONTENT_CREATOR",
                 isContentCreator: true,
             }
 
             console.log("Enhanced registration data for content creator:", enhancedData)
 
-            const response = await AuthService.registerContentCreator(enhancedData)
+            const response = await authService.registerContentCreator(enhancedData)
 
             // Explicitly check if registration was successful
             if (response && response.success) {
@@ -227,10 +150,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    const forgotPassword = async (email: string, role: string) => {
+    const forgotPassword = async (email: string, role: UserRole) => {
         setLoading(true)
         try {
-            await AuthService.forgotPassword(email, role)
+            await authService.forgotPassword(email, role)
         } catch (error: any) {
             console.error("Forgot password error in hook:", error)
             throw error
@@ -242,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const resetPassword = async (data: PasswordResetRequest) => {
         setLoading(true)
         try {
-            await AuthService.resetPassword(data)
+            await authService.resetPassword(data)
             // Don't redirect here, let the component handle success state
         } catch (error: any) {
             console.error("Reset password error in hook:", error)
@@ -253,11 +176,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const logout = () => {
-        AuthService.logout()
+        authService.logout()
         setUser(null)
         setIsAuthenticated(false)
         setUserRole(null)
         router.push("/")
+    }
+
+    // Funktion zum Synchronisieren der Rolle mit dem Backend
+    const syncRole = async (): Promise<string | null> => {
+        try {
+            // Hier würde normalerweise ein API-Aufruf erfolgen, um die Rolle vom Backend zu holen
+            // Da wir keinen direkten Zugriff auf das Backend haben, verwenden wir die lokale Rolle
+            const role = authService.getUserRole()
+            console.log("Synchronized role:", role)
+
+            if (role) {
+                setUserRole(role as UserRole)
+            }
+
+            // Debug-Informationen anzeigen
+            debugAuthState()
+
+            return role
+        } catch (error) {
+            console.error("Error synchronizing role:", error)
+            return null
+        }
     }
 
     return (

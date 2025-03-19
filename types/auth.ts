@@ -1,70 +1,74 @@
-// Aktualisierte Typdefinitionen für die Authentifizierung
-
-// Benutzerrolle als Enum
 export enum UserRole {
     COMPANY = "COMPANY",
     CONTENT_CREATOR = "CONTENT_CREATOR",
-    ADMIN = "ADMIN",
 }
 
-// Benutzer-Interface
-export interface User {
-    id: string
-    email: string
-    firstName?: string
-    lastName?: string
-    role?: UserRole | string // Erlaubt sowohl Enum als auch String
-    enabled: boolean
-    createdAt: string
-    updatedAt?: string
-    companyName?: string
-    companySize?: string
-    contactName?: string
-    industry?: string
-    website?: string
-}
-
-// Login-Anfrage
 export interface LoginRequest {
     email: string
     password: string
     rememberMe?: boolean
-    role?: UserRole | string // Hinzugefügt für explizite Rollenangabe
-    isContentCreator?: boolean // Hinzugefügt für explizites Content-Creator-Flag
-}
-
-// Registrierungs-Anfrage
-export interface RegistrationRequest {
-    email: string
-    password: string
-    firstName: string
-    lastName: string
-    companyName?: string
-    companySize?: string
-    contactName?: string
-    industry?: string
-    website?: string
-    role?: UserRole | string
-    userType?: string
+    role?: string
+    isCompany?: boolean
     isContentCreator?: boolean
 }
 
-// Passwort-Reset-Anfrage
+export interface LoginResponse {
+    token: string
+    user: {
+        id: string
+        email: string
+        role: string
+        [key: string]: any
+    }
+}
+
+export interface RegistrationRequest {
+    email: string
+    password: string
+    firstName?: string
+    lastName?: string
+    companyName?: string
+    contactName?: string
+    companySize?: string
+    industry?: string
+    website?: string
+    username?: string
+    contentType?: string
+    bio?: string
+    socialMedia?: {
+        instagram?: string
+        youtube?: string
+        tiktok?: string
+        twitter?: string
+    }
+    termsAgreed: boolean
+    role?: string
+    userType?: string
+    isCompany?: boolean
+    isContentCreator?: boolean
+}
+
+export interface RegistrationResponse {
+    success: boolean
+    message?: string
+}
+
 export interface PasswordResetRequest {
     token: string
     password: string
     confirmPassword: string
+    email?: string
 }
 
-// Authentifizierungs-Antwort
-export interface AuthResponse {
-    success: boolean
-    message?: string
-    data?: {
-        token?: string
-        user?: User
-        redirectTo?: string
-    }
-    timestamp?: string
+export interface VerifyEmailRequest {
+    email: string
+    code: string
+}
+
+export interface AuthState {
+    user: any | null
+    isAuthenticated: boolean
+    loading: boolean
+    error: string | null
 }
 

@@ -1,5 +1,5 @@
-import { API_PREFIX } from "./api"
-import type { ApiResponse } from "@/types/auth"
+import { API_PREFIX } from "@/lib/api-constants"
+import type { ApiResponse } from "@/types/api"
 
 /**
  * Sends a direct request to the API without middleware

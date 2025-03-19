@@ -3,14 +3,17 @@
 import type React from "react"
 import { Navbar } from "@/app/components/Navbar"
 import { Footer } from "@/app/components/Footer"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import ContentCreator from "@/public/icons/contentCreatorIcon.png"
 import Image from "next/image"
-import { AuthService } from "@/lib/auth"
+import { AuthService } from "@/services/auth-service"
 import type { RegistrationRequest } from "@/types/auth"
 import { testApiConnection } from "@/lib/api-connection-helper"
+import { forceContentCreatorRole } from "@/lib/auth-debug"
+import ApiConnectionDebugger from "@/components/api-connection-debugger"
+import ApiPathExplorer from "@/components/api-path-explorer"
 
 export default function ContentCreatorRegister() {
     const router = useRouter()
@@ -34,36 +37,47 @@ export default function ContentCreatorRegister() {
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
     const [debugInfo, setDebugInfo] = useState<string | null>(null)
+    const [apiUrl, setApiUrl] = useState<string | null>(null)
+    const [showDebugger, setShowDebugger] = useState(false)
+    const [showPathExplorer, setShowPathExplorer] = useState(false)
+
+    // Überprüfe die API-URL beim Laden der Komponente
+    useEffect(() => {
+        const url = process.env.NEXT_PUBLIC_API_URL || "Not set"
+        setApiUrl(url)
+        console.log("Current API URL:", url)
+    }, [])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target as HTMLInputElement & { type: string };
+        const { name, value, type } = e.target as HTMLInputElement & { type: string }
 
         if (name.includes(".")) {
-            const [parent, child] = name.split(".");
+            const [parent, child] = name.split(".")
             setFormData((prev) => ({
                 ...prev,
                 [parent]: {
                     ...(prev[parent as keyof typeof prev] as Record<string, string>),
                     [child]: value,
                 },
-            }));
+            }))
         } else if (type === "checkbox") {
             setFormData((prev) => ({
                 ...prev,
                 [name]: (e.target as HTMLInputElement).checked,
-            }));
+            }))
         } else {
             setFormData((prev) => ({
                 ...prev,
                 [name]: value,
-            }));
+            }))
         }
-    };
+    }
 
+    // Füge Debugging-Ausgaben hinzu, um den Registrierungsprozess zu verfolgen
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        setDebugInfo(null);
+        e.preventDefault()
+        setError("")
+        setDebugInfo(null)
 
         // Validate form
         if (
@@ -73,70 +87,97 @@ export default function ContentCreatorRegister() {
             !formData.password ||
             !formData.confirmPassword
         ) {
-            setError("Please fill in all required fields");
-            return;
+            setError("Please fill in all required fields")
+            return
         }
 
         if (formData.password !== formData.confirmPassword) {
-            setError("Passwords do not match");
-            return;
+            setError("Passwords do not match")
+            return
         }
 
         if (formData.password.length < 8) {
-            setError("Password must be at least 8 characters long");
-            return;
+            setError("Password must be at least 8 characters long")
+            return
         }
 
         if (!formData.termsAgreed) {
-            setError("You must agree to the Terms of Service and Privacy Policy");
-            return;
+            setError("You must agree to the Terms of Service and Privacy Policy")
+            return
         }
 
-        setLoading(true);
+        // Überprüfe, ob die API-URL gesetzt ist
+        if (!process.env.NEXT_PUBLIC_API_URL) {
+            setError("API URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.")
+            setDebugInfo(`Current API URL: ${apiUrl}`)
+            return
+        }
+
+        setLoading(true)
 
         try {
-            // Log the API URL for debugging
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-            setDebugInfo(`Attempting registration with API URL: ${API_URL}/api/auth/register/content-creator`);
+            // Setze die Rolle auf CONTENT_CREATOR
+            forceContentCreatorRole()
 
-            // Prepare registration data for Spring Boot
+            // Log the API URL for debugging
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+            setDebugInfo(`Attempting registration with API URL: ${API_URL}/auth/register/content_creator`)
+
             const registrationRequest: RegistrationRequest = {
-                email: formData.email,
-                password: formData.password,
+                termsAgreed: false,
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                username: formData.username || `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}`,
+                email: formData.email,
+                password: formData.password,
                 contentType: formData.contentType,
                 bio: formData.bio,
-                socialMedia: formData.socialMedia,
-                termsAgreed: formData.termsAgreed,
-            };
+                // Explizit die Rolle als CONTENT_CREATOR setzen
+                role: "CONTENT_CREATOR",
+                userType: "CONTENT_CREATOR",
+                isContentCreator: true
+            }
 
-            // Use the AuthService for registration
-            const response = await AuthService.registerContentCreator(registrationRequest);
+            console.log("Content Creator Registration Request:", JSON.stringify(registrationRequest, null, 2))
+
+            // Use the AuthService directly for registration
+            const response = await AuthService.registerContentCreator(registrationRequest)
+            console.log("Content Creator Registration Response:", response)
 
             if (response.success) {
-                router.push("/login/content-creator?registered=true");
-                return;
+                // Speichere die Rolle für die spätere Verwendung
+                localStorage.setItem("pendingRegistrationRole", "CONTENT_CREATOR")
+                router.push("/login/content-creator?registered=true")
+                return
             }
 
             // If registration failed, show the error message
-            setError(response.message || "Registration failed. Please try again.");
+            setError(response.message || "Registration failed. Please try again.")
 
             // If there's a connection issue, test the API connection
             if (response.message?.includes("failed") || response.message?.includes("Failed to fetch")) {
-                const connectionTest = await testApiConnection();
-                setDebugInfo(JSON.stringify(connectionTest, null, 2));
+                const connectionTest = await testApiConnection()
+                setDebugInfo(JSON.stringify(connectionTest, null, 2))
+                setShowDebugger(true)
             }
         } catch (err: any) {
-            console.error("Registration error:", err);
+            console.error("Registration error:", err)
             setError(
                 err.message || "An error occurred during registration. Please check your internet connection and try again.",
-            );
+            )
+
+            // Zeige detaillierte Fehlerinformationen an
+            if (err.response) {
+                setDebugInfo(`Error response: ${JSON.stringify(err.response.data, null, 2)}`)
+            } else {
+                setDebugInfo(`Error: ${err.message || "Unknown error"}`)
+            }
+
+            // Aktiviere den Debugger
+            setShowDebugger(true)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     return (
         <>
@@ -155,6 +196,17 @@ export default function ContentCreatorRegister() {
                     </p>
 
                     <div className="mt-8">
+                        {apiUrl === "Not set" && (
+                            <div
+                                className="bg-yellow-100 border text-2xl border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4"
+                                role="alert"
+                            >
+                <span className="block sm:inline">
+                  Warning: NEXT_PUBLIC_API_URL is not set. API requests will fail.
+                </span>
+                            </div>
+                        )}
+
                         {error && (
                             <div
                                 className="bg-red-100 border text-2xl border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
@@ -172,6 +224,33 @@ export default function ContentCreatorRegister() {
                                 <span className="block sm:inline font-mono text-xs whitespace-pre-wrap">{debugInfo}</span>
                             </div>
                         )}
+
+                        {showDebugger && (
+                            <div className="mb-8">
+                                <ApiConnectionDebugger />
+                            </div>
+                        )}
+
+                        {showPathExplorer && (
+                            <div className="mb-8">
+                                <ApiPathExplorer />
+                            </div>
+                        )}
+
+                        <div className="mb-6 flex justify-end space-x-4">
+                            <button
+                                onClick={() => setShowDebugger(!showDebugger)}
+                                className="text-sm text-gray-400 hover:text-gray-300 underline"
+                            >
+                                {showDebugger ? "Hide API Debugger" : "Show API Debugger"}
+                            </button>
+                            <button
+                                onClick={() => setShowPathExplorer(!showPathExplorer)}
+                                className="text-sm text-gray-400 hover:text-gray-300 underline"
+                            >
+                                {showPathExplorer ? "Hide Path Explorer" : "Show Path Explorer"}
+                            </button>
+                        </div>
 
                         <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="bg-gray-900 p-6 rounded-lg shadow-md">

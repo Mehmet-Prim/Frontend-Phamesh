@@ -8,9 +8,10 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Company from "@/public/icons/companyIcon.png"
 import Image from "next/image"
-import { AuthService } from "@/lib/auth"
+import { AuthService } from "@/services/auth-service"
 import type { RegistrationRequest } from "@/types/auth"
 import { testApiConnection } from "@/lib/api-connection-helper"
+import { forceCompanyRole } from "@/lib/auth-debug"
 
 export default function CompanyRegister() {
     const router = useRouter()
@@ -81,11 +82,16 @@ export default function CompanyRegister() {
         setLoading(true)
 
         try {
+            // Setze die Rolle auf COMPANY
+            forceCompanyRole()
+
             // Log the API URL for debugging
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
             setDebugInfo(`Attempting registration with API URL: ${API_URL}/api/auth/register/company`)
 
             const registrationRequest: RegistrationRequest = {
+                firstName: "",
+                lastName: "",
                 email: formData.email,
                 password: formData.password,
                 companyName: formData.companyName,
@@ -94,12 +100,18 @@ export default function CompanyRegister() {
                 industry: formData.industry,
                 website: formData.website,
                 termsAgreed: formData.termsAgreed,
+                // Explizit die Rolle als COMPANY setzen
+                role: "COMPANY",
+                userType: "COMPANY",
+                isCompany: true,
             }
 
             // Use the AuthService directly for registration
             const response = await AuthService.registerCompany(registrationRequest)
 
             if (response.success) {
+                // Speichere die Rolle für die spätere Verwendung
+                localStorage.setItem("pendingRegistrationRole", "COMPANY")
                 router.push("/login/company?registered=true")
                 return
             }

@@ -1,276 +1,246 @@
 "use client"
 
-import type React from "react"
-
 import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Navbar } from "@/app/components/Navbar"
-import { Footer } from "@/app/components/Footer"
-import { AuthService } from "@/lib/auth"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function VerifyEmail() {
-    const searchParams = useSearchParams()
+export default function VerifyEmailPage() {
+    const [error, setError] = useState("")
+    const [success, setSuccess] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [userRole, setUserRole] = useState<string | null>(null)
+    const [otpCode, setOtpCode] = useState("")
+    const [otpLoading, setOtpLoading] = useState(false)
     const router = useRouter()
-    const [status, setStatus] = useState<"loading" | "success" | "error" | "manual">("loading")
-    const [message, setMessage] = useState("")
-    const [email, setEmail] = useState("")
-    const [code, setCode] = useState("")
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const searchParams = useSearchParams()
+    const token = searchParams.get("token")
+    const role = searchParams.get("role")
+
+    // Bestimme den aktiven Tab basierend auf dem Vorhandensein eines Tokens
+    const defaultTab = token ? "link" : "otp"
 
     useEffect(() => {
-        const token = searchParams.get("token")
-        const emailParam = searchParams.get("email")
-        const codeParam = searchParams.get("code")
-
-        if (emailParam) {
-            setEmail(emailParam)
+        if (role) {
+            setUserRole(role)
         }
 
-        if (codeParam) {
-            setCode(codeParam)
-        }
-
+        // Nur automatisch verifizieren, wenn ein Token vorhanden ist
         if (token) {
             verifyWithToken(token)
-        } else if (emailParam && codeParam) {
-            // Automatisch verifizieren, wenn E-Mail und Code in der URL sind
-            handleManualVerification(new Event("submit") as any)
-        } else {
-            setStatus("manual")
         }
-    }, [searchParams])
+    }, [token, role])
 
+    // Funktion zur Verifizierung mit Token
     const verifyWithToken = async (token: string) => {
-        try {
-            const response = await AuthService.verifyEmail(token)
-            setStatus("success")
-            setMessage(response.message || "Email verified successfully!")
-        } catch (error: any) {
-            setStatus("error")
-            setMessage(error.message || "Failed to verify email. The link may be expired or invalid.")
-        }
-    }
-
-    const handleManualVerification = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsSubmitting(true)
+        setLoading(true)
+        setError("")
 
         try {
-            const response = await AuthService.verifyEmailWithCode(email, code)
-            setStatus("success")
-            setMessage(response.message || "Email verified successfully!")
-        } catch (error: any) {
-            setStatus("error")
-            setMessage(error.message || "Failed to verify email. The code may be expired or invalid.")
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email?token=${token}`, {
+                method: "GET",
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to verify email")
+            }
+
+            if (data.success) {
+                setSuccess(true)
+
+                // Wenn die Rolle in der Antwort enthalten ist, speichere sie
+                if (data.user && data.user.role) {
+                    setUserRole(data.user.role)
+                }
+            } else {
+                setError(data.message || "Failed to verify email")
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An error occurred")
         } finally {
-            setIsSubmitting(false)
+            setLoading(false)
         }
     }
 
-    const handleResendVerification = async () => {
-        if (!email) {
-            setMessage("Please enter your email address")
+    // Funktion zur Verifizierung mit OTP-Code
+    const verifyWithOTP = async () => {
+        if (!otpCode.trim()) {
+            setError("Please enter the verification code")
             return
         }
 
+        setOtpLoading(true)
+        setError("")
+
         try {
-            const response = await AuthService.resendVerificationEmail(email)
-            setMessage("Verification email has been resent. Please check your inbox.")
-        } catch (error: any) {
-            setMessage(error.message || "Failed to resend verification email.")
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-otp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ code: otpCode }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to verify email")
+            }
+
+            if (data.success) {
+                setSuccess(true)
+
+                // Wenn die Rolle in der Antwort enthalten ist, speichere sie
+                if (data.user && data.user.role) {
+                    setUserRole(data.user.role)
+                }
+            } else {
+                setError(data.message || "Invalid verification code")
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An error occurred")
+        } finally {
+            setOtpLoading(false)
+        }
+    }
+
+    // Funktion zur Weiterleitung basierend auf der Rolle
+    const redirectToLogin = () => {
+        if (userRole === "COMPANY") {
+            router.push("/login/company")
+        } else if (userRole === "CONTENT_CREATOR") {
+            router.push("/login/content-creator")
+        } else {
+            // Fallback zur allgemeinen Login-Seite, wenn keine Rolle erkannt wurde
+            router.push("/login")
         }
     }
 
     return (
-        <>
-            <Navbar />
-            <main className="max-w-7xl mx-auto min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                <div className="w-full max-w-md">
-                    <div className="bg-gray-900 p-8 rounded-lg shadow-md text-center">
-                        {status === "loading" && (
-                            <div className="flex flex-col items-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
-                                <h3 className="text-xl font-medium text-white mb-2">Verifying your email...</h3>
-                                <p className="text-gray-300">Please wait while we verify your email address.</p>
-                            </div>
-                        )}
+        <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-b from-gray-50 to-gray-100">
+            <div className="w-full max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Email Verification</CardTitle>
+                        <CardDescription>Verify your email address to activate your account</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {success ? (
+                            // Erfolgsanzeige
+                            <div className="space-y-4">
+                                <Alert className="mb-4 bg-green-50 border-green-200">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    <AlertDescription className="text-green-600">
+                                        Your email has been successfully verified!
+                                    </AlertDescription>
+                                </Alert>
 
-                        {status === "success" && (
-                            <div>
-                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                                    <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl font-medium text-white mb-2">Email Verified!</h3>
-                                <p className="text-gray-300 mb-6">{message}</p>
-                                <Link
-                                    href="/login/company"
-                                    className="inline-block mr-4 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] hover:from-[#C9A40B] hover:to-[#BD7D09] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                                >
-                                    Login as Company
-                                </Link>
-                                <Link
-                                    href="/login/content-creator"
-                                    className="inline-block py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#DB134C] to-[#A31113] hover:from-[#C41145] hover:to-[#910F11] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                >
-                                    Login as Content Creator
-                                </Link>
-                            </div>
-                        )}
+                                <Button onClick={redirectToLogin} className="w-full">
+                                    Continue to Login
+                                </Button>
 
-                        {status === "manual" && (
-                            <div>
-                                <h3 className="text-xl font-medium text-white mb-4">Verify Your Email</h3>
-                                <p className="text-gray-300 mb-6">
-                                    Please enter the verification code that was sent to your email address.
-                                </p>
-
-                                {message && (
-                                    <div
-                                        className={`mb-4 p-3 rounded ${message.includes("success") ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                                    >
-                                        {message}
+                                <div className="mt-4 text-sm text-gray-500">
+                                    <p>Or go to specific login page:</p>
+                                    <div className="flex justify-center gap-4 mt-2">
+                                        <Link href="/login/company" className="text-primary hover:underline">
+                                            Company Login
+                                        </Link>
+                                        <Link href="/login/content-creator" className="text-primary hover:underline">
+                                            Content Creator Login
+                                        </Link>
                                     </div>
-                                )}
-
-                                <form onSubmit={handleManualVerification} className="space-y-4">
-                                    <div>
-                                        <label htmlFor="email" className="block text-sm font-medium text-white text-left">
-                                            Email Address
-                                        </label>
-                                        <input
-                                            type="email"
-                                            id="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="code" className="block text-sm font-medium text-white text-left">
-                                            Verification Code
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="code"
-                                            value={code}
-                                            onChange={(e) => setCode(e.target.value)}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            required
-                                            maxLength={6}
-                                            minLength={6}
-                                            placeholder="Enter 6-digit code"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col space-y-3">
-                                        <button
-                                            type="submit"
-                                            disabled={isSubmitting}
-                                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        >
-                                            {isSubmitting ? "Verifying..." : "Verify Email"}
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={handleResendVerification}
-                                            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                        >
-                                            Resend Verification Email
-                                        </button>
-                                    </div>
-                                </form>
-
-                                <div className="mt-6">
-                                    <Link href="/select-role" className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
-                                        Back to selection
-                                    </Link>
                                 </div>
                             </div>
-                        )}
+                        ) : (
+                            // Verifizierungsoptionen
+                            <Tabs defaultValue={defaultTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="link">Verification Link</TabsTrigger>
+                                    <TabsTrigger value="otp">Verification Code</TabsTrigger>
+                                </TabsList>
 
-                        {status === "error" && (
-                            <div>
-                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl font-medium text-white mb-2">Verification Failed</h3>
-                                <p className="text-gray-300 mb-6">{message}</p>
+                                <TabsContent value="link" className="space-y-4">
+                                    {loading ? (
+                                        <div className="flex justify-center items-center py-8">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                                        </div>
+                                    ) : token ? (
+                                        <div className="py-4">
+                                            {error ? (
+                                                <Alert variant="destructive" className="mb-4">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertDescription>{error}</AlertDescription>
+                                                </Alert>
+                                            ) : (
+                                                <Alert className="mb-4">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertDescription>
+                                                        The verification link is invalid or has expired. Please try using the verification code
+                                                        instead.
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="py-4">
+                                            <p className="text-center text-gray-600">
+                                                Please click on the verification link in your email to verify your account.
+                                            </p>
+                                            <p className="text-center text-gray-600 mt-2">
+                                                If you didn&#39;t receive the email or the link doesn&#39;t work, you can use the verification code
+                                                instead.
+                                            </p>
+                                        </div>
+                                    )}
+                                </TabsContent>
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <h4 className="text-md font-medium text-white mb-2">Enter Verification Code</h4>
-                                        <form onSubmit={handleManualVerification} className="space-y-4">
-                                            <div>
-                                                <label htmlFor="email" className="block text-sm font-medium text-white text-left">
-                                                    Email Address
-                                                </label>
-                                                <input
-                                                    type="email"
-                                                    id="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                    required
-                                                />
-                                            </div>
+                                <TabsContent value="otp" className="space-y-4">
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="otp">Enter the verification code from your email</Label>
+                                            <Input
+                                                id="otp"
+                                                placeholder="Enter 6-digit code"
+                                                value={otpCode}
+                                                onChange={(e) => setOtpCode(e.target.value)}
+                                                maxLength={6}
+                                                className="text-center text-lg tracking-widest"
+                                            />
+                                        </div>
 
-                                            <div>
-                                                <label htmlFor="code" className="block text-sm font-medium text-white text-left">
-                                                    Verification Code
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="code"
-                                                    value={code}
-                                                    onChange={(e) => setCode(e.target.value)}
-                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                                    required
-                                                    maxLength={6}
-                                                    minLength={6}
-                                                    placeholder="Enter 6-digit code"
-                                                />
-                                            </div>
+                                        {error && (
+                                            <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertDescription>{error}</AlertDescription>
+                                            </Alert>
+                                        )}
 
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting}
-                                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                            >
-                                                {isSubmitting ? "Verifying..." : "Verify Email"}
-                                            </button>
-                                        </form>
+                                        <Button onClick={verifyWithOTP} className="w-full" disabled={otpLoading || !otpCode.trim()}>
+                                            {otpLoading ? (
+                                                <span className="flex items-center">
+                          <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></span>
+                          Verifying...
+                        </span>
+                                            ) : (
+                                                "Verify Email"
+                                            )}
+                                        </Button>
                                     </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={handleResendVerification}
-                                        className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                    >
-                                        Resend Verification Email
-                                    </button>
-
-                                    <Link
-                                        href="/select-role"
-                                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                    >
-                                        Back to Home
-                                    </Link>
-                                </div>
-                            </div>
+                                </TabsContent>
+                            </Tabs>
                         )}
-                    </div>
-                </div>
-            </main>
-            <Footer />
-        </>
+                    </CardContent>
+                </Card>
+            </div>
+        </main>
     )
 }
 
