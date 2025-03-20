@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import {useEffect, useRef, useState} from "react"
 import { Navbar } from "@/app/components/Navbar"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Footer } from "@/app/components/Footer"
+import Logo from "@/public/Logo.png"
+import Image from "next/image";
 
 const partners = [
     "red",
@@ -22,140 +24,146 @@ const partners = [
 ]
 
 export default function Home() {
-    const [isMobile, setIsMobile] = useState(false)
+    const [isHovered, setIsHovered] = useState(false);
+    const [scrollY, setScrollY] = useState(0);
+    const lineRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 900)
-        }
+        const lineElement = lineRef.current;
 
-        handleResize()
-        window.addEventListener("resize", handleResize)
-        return () => window.removeEventListener("resize", handleResize)
-    }, [])
+        if (!lineElement) return;
 
-    if (isMobile) {
-        return (
-            <>
+        const speedFactor = 1;
+        const lineHeight = 770;
+        const stopOffset = 0;
+
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY;
+            const lineTop = lineElement.getBoundingClientRect().top + window.scrollY;
+
+            const progress = (scrollPosition - lineTop) / (lineHeight - window.innerHeight);
+
+            const newPosition = (1 - progress) * (lineHeight - stopOffset) * speedFactor;
+
+            setScrollY(Math.min(Math.max(newPosition, 0), lineHeight - stopOffset));
+        };
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        window.addEventListener("scroll", handleScroll);
+                    } else {
+                        window.removeEventListener("scroll", handleScroll);
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        observer.observe(lineElement);
+
+        return () => {
+            observer.unobserve(lineElement);
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
+
+    return (
+        <>
+            <div className="dark:bg-[#161616] bg-[#F2EFE7]">
                 <Navbar />
-                <main className="max-w-7xl mx-auto px-4">
-                    <div className="flex flex-col justify-between items-center mt-24">
-                        <div className="max-w-[400px]">
-                            <h1 className="text-7xl">finding cooperations was never that easy before</h1>
-                            <div className="max-w-[500px]">
-                                <p className="text-3xl text-center text-white">
-                                    Connect your socials, find the cooperations that suit you the most, and you are ready to go. It
-                                    doesn&#39;t matter if you are a content creator or a company.
-                                </p>
-                            </div>
+                <main className="max-w-7xl w-full px-10 py-6 mx-auto mt-10 mb-10">
+                    <div className="flex lg:justify-between justify-center items-center flex-wrap-reverse gap-10">
+                        <div className="space-y-6 md:space-y-10 text-center md:text-left">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold dark:text-white">
+                                <span className="bg-gradient-to-r from-[#DDB40C] to-[#EA6907] text-transparent bg-clip-text">cooperating</span> <br/>
+                                was never <br/>
+                                that easy before
+                            </h1>
+                            <p className="text-sm sm:text-base md:text-lg dark:text-white max-w-md mx-auto md:mx-0">
+                                Connect your Socials, find cooperation&#39;s & post videos
+                            </p>
+                        </div>
+                        <div className="relative flex items-center justify-center w-full md:w-auto">
+                            <div className="blur-lg absolute w-[300px] sm:w-[400px] md:w-[500px] h-[230px] sm:h-[300px] md:h-[390px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                            <div className="blur-xs absolute w-[290px] sm:w-[390px] md:w-[485px] h-[220px] sm:h-[290px] md:h-[375px] bg-white rounded-lg"></div>
+                            <div className="w-[280px] sm:w-[380px] md:w-[475px] h-[210px] sm:h-[280px] md:h-[365px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative shadow-xl"></div>
                         </div>
                     </div>
+                    <div className="flex items-center justify-center mt-20 md:mt-36 relative">
+                        <Link href="/select-role">
+                            <div className="relative">
+                                <div
+                                    className="absolute inset-0 bg-[#DB134C] blur-lg transition-transform duration-300 ease-in-out"
+                                    style={{ animation: isHovered ? 'none' : 'pulse 3s infinite' }}
+                                ></div>
 
-                    <div className="w-full mt-24 relative">
-                        <div className="flex justify-center relative z-10">
-                            <Link href="/select-role">
-                                <button className="text-5xl bg-red-600 px-4 py-2 rounded-lg text-white">Sign up for free</button>
-                            </Link>
+                                <button
+                                    className="relative bg-[#DB134C] text-base sm:text-lg md:text-xl text-white px-6 py-3 rounded-lg transition-transform duration-300 ease-in-out"
+                                    style={{ animation: isHovered ? 'none' : 'pulse 3s infinite' }}
+                                    onMouseEnter={() => setIsHovered(true)}
+                                    onMouseLeave={() => setIsHovered(false)}
+                                >
+                                    sign up for free →
+                                </button>
+
+                                <style>
+                                    {`
+                                        @keyframes pulse {
+                                            0% {
+                                                transform: scale(1);
+                                            }
+                                            50% {
+                                                transform: scale(1.1);
+                                            }
+                                            100% {
+                                                transform: scale(1);
+                                            }
+                                        }
+                                    `}
+                                </style>
+
+                            </div>
+                        </Link>
+                    </div>
+                    <div className="flex md:justify-between items-center h-full mt-20 md:mt-40 flex-wrap w-full gap-10">
+                        <div className="relative flex items-center justify-center w-full md:w-auto order-2 md:order-1">
+                            <div className="blur-lg absolute w-[300px] sm:w-[400px] md:w-[500px] h-[350px] sm:h-[450px] md:h-[595px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] border-2 border-white rounded-lg"></div>
+                            <div className="blur-xs absolute w-[290px] sm:w-[390px] md:w-[485px] h-[340px] sm:h-[440px] md:h-[580px] bg-white rounded-lg"></div>
+                            <div className="w-[280px] sm:w-[380px] md:w-[475px] h-[330px] sm:h-[430px] md:h-[570px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] rounded-lg relative shadow-xl"></div>
                         </div>
-
-                        <div className="w-full flex justify-center">
-                            <div className="flex w-full">
-                                <div className="w-1/2"></div>
-                                <div className="w-1/2 pr-4">
-                                    <div className="h-1 bg-white -mt-8 w-full"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <div className="flex justify-end pr-4">
-                                <div className="h-20 w-1 bg-white -mt-8"></div>
-                            </div>
-
-                            <div className="absolute top-1/4 left-0 right-0 px-4 md:px-8 lg:px-12">
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-8"></div>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="pr-4">
-                                <div className="w-full h-1 bg-white"></div>
-                            </div>
-
-                            <div className="absolute left-4 translate-y-1/8 w-full h-full">
-                                <div className="flex justify-end gap-8">
-                                    <div className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-[365px] h-[200px] rounded-l-lg"></div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-start mt-8">
-                                <div className="h-[270px] w-1 bg-white -mt-8"></div>
-                            </div>
-
-                            <div className="flex justify-start mt-8">
-                                <div className="w-full h-1 bg-white -mt-8"></div>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="flex justify-end -mt-8">
-                                <div className="bg-white w-1 h-96"></div>
-                            </div>
-                            <div className="">
-                                <div className="absolute top-1/12 left-0 right-0 px-4">
-                                    <div className="flex flex-col">
-                                        <p className="max-w-64 text-4xl">connect with companies from all over the world</p>
-                                    </div>
-                                </div>
-                                <div className="absolute right-4 top-28 w-full h-full">
-                                    <div className="flex justify-start items-center">
-                                        <div className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-[365px] h-[250px] rounded-r-lg shrink-0"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white w-full h-1"></div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="flex justify-start">
-                                <div className="bg-white w-1 h-[330px]"></div>
-                            </div>
-
-                            <div className="">
-                                <div className="absolute top-4 left-0 right-0 px-4">
-                                    <div className="flex justify-end w-full">
-                                        <p className="max-w-64 text-4xl text-left ml-auto">
-                                            choose from a big variety of cooperation offers
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="absolute left-4 top-24 w-full">
-                                    <div className="flex justify-end gap-8">
-                                        <div className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-[365px] h-[200px] rounded-l-lg"></div>
-                                    </div>
-                                    <div className="flex items-center justify-between max-w-[250px] ml-auto mr-20">
-                                        <div>
-                                            <Link href="">
-                                                <p className="underline text-[#4C4C4C] text-3xl">learn more</p>
-                                            </Link>
-                                        </div>
-                                        <div>
-                                            <Link href="">
-                                                <p className="underline text-[#4C4C4C] text-3xl">partners</p>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-start pr-4">
-                                <div className="size-6 bg-white flex justify-start rounded-full absolute bottom-0 -translate-x-2.5"></div>
-                            </div>
+                        <div className="space-y-10 md:space-y-20 flex flex-col items-center md:items-end justify-end order-1 md:order-2 w-full md:w-auto">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl text-center md:text-right leading-tight dark:text-white">
+                                <span className="bg-gradient-to-r from-[#45A2BD] to-[#1357B1] text-transparent bg-clip-text font-extrabold">
+                                    connect with
+                                </span>
+                                <br />
+                                <span className="bg-gradient-to-r from-[#45A2BD] to-[#1357B1] text-transparent bg-clip-text font-extrabold">
+                                    companies
+                                </span>
+                                <br />
+                                <span className="text-black font-extrabold dark:text-white">from all over</span>
+                                <br />
+                                <span className="text-black font-extrabold dark:text-white">the world</span>
+                            </h1>
+                            <p className="text-sm sm:text-base md:text-lg text-center md:text-right dark:text-white max-w-md">
+                                connect your socials find the cooperation&#39;s that suits you the most and you are ready to go. it doesn't matter if you are a content creator or a company
+                            </p>
                         </div>
                     </div>
-
-                    <div className="mt-4 w-full overflow-hidden">
-                        <h1 className="text-5xl mb-4 text-left">Our Partners:</h1>
+                    <div className="mt-20 md:mt-40 flex items-center justify-center flex-col space-y-10 md:space-y-20">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl text-center font-extrabold dark:text-white">
+                            choose from a <span className="bg-gradient-to-r from-[#DB134C] to-[#7B0A2A] text-transparent bg-clip-text">big variety</span> of cooperation offers
+                        </h1>
+                        <div className="relative flex items-center justify-center w-full">
+                            <div className="blur-lg absolute w-full max-w-[1142px] h-[300px] sm:h-[400px] md:h-[602px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] border-2 border-white rounded-lg"></div>
+                            <div className="blur-xs absolute w-[calc(100%-20px)] max-w-[1132px] h-[290px] sm:h-[390px] md:h-[592px] bg-white rounded-lg"></div>
+                            <div className="w-[calc(100%-30px)] max-w-[1122px] h-[280px] sm:h-[380px] md:h-[582px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] rounded-lg relative shadow-xl"></div>
+                        </div>
+                    </div>
+                    <div className="mt-20 md:mt-40 w-full overflow-hidden">
+                        <h3 className="mb-5 text-2xl sm:text-3xl md:text-4xl text-center dark:text-white font-bold">Our Partners:</h3>
                         <div className="relative w-full">
                             <motion.div
                                 className="flex space-x-6 whitespace-nowrap"
@@ -174,217 +182,135 @@ export default function Home() {
                             </motion.div>
                         </div>
                     </div>
-
-                    <div className="relative mt-10">
-                        <div className="flex justify-end">
-                            <div className="bg-white rounded-full size-6"></div>
+                    <div className="mt-20 md:mt-40 flex flex-col space-y-10 md:space-y-20">
+                        <div className="text-center md:text-left">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold dark:text-white">
+                                Track your <span className="bg-gradient-to-r from-[#DDB40C] to-[#EA6907] text-transparent bg-clip-text">views</span> and <span className="bg-gradient-to-r from-[#DDB40C] to-[#EA6907] text-transparent bg-clip-text">followers</span>
+                            </h1>
                         </div>
-                        <div className="flex justify-end pr-2.5">
-                            <div className="h-32 w-1 bg-white"></div>
-                        </div>
-                        <div className="pr-2.5">
-                            <div className="w-full h-1 bg-white"></div>
-                        </div>
-                    </div>
-                    <div className="relative">
-                        <div className="flex justify-start">
-                            <div className="bg-white h-[555px] w-1"></div>
-                        </div>
-
-                        <div className="absolute top-1 right-1/2 left-1/2">
-                            <div className="flex justify-center items-center text-5xl whitespace-nowrap">
-                                <h1>a content creator</h1>
-                            </div>
-                            <div className="space-y-10 flex flex-col items-center justify-center">
-                                <div className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-[250px] h-[130px] rounded-lg"></div>
-                                <div className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-[250px] h-[130px] rounded-lg"></div>
-                                <div className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-[250px] h-[130px] rounded-lg"></div>
+                        <div className="flex items-center justify-center md:justify-end">
+                            <div className="relative flex items-center justify-center w-full md:w-auto">
+                                <div className="blur-lg absolute w-full max-w-[694px] h-[250px] sm:h-[350px] md:h-[420px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                                <div className="blur-xs absolute w-[calc(100%-20px)] max-w-[684px] h-[240px] sm:h-[340px] md:h-[410px] bg-white rounded-lg"></div>
+                                <div className="w-[calc(100%-30px)] max-w-[674px] h-[230px] sm:h-[330px] md:h-[400px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative shadow-xl"><Image className="flex items-center justify-center" src={Logo} alt={""}/></div>
                             </div>
                         </div>
                     </div>
-                    <div className="w-full h-1 bg-white"></div>
-                    <div className="relative">
-                        <div className="flex justify-end">
-                            <div className="bg-white h-[555px] w-1"></div>
+
+                    <div className="flex flex-col items-center mt-20 md:mt-40">
+                        <div className="text-center">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl dark:text-white font-bold">
+                                it <span className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] text-transparent bg-clip-text">doesn't matter</span> whether you are...
+                            </h1>
                         </div>
 
-                        <div className="absolute top-1 right-1/2 left-1/2">
-                            <div className="flex justify-center items-center text-5xl whitespace-nowrap">
-                                <h1>a company</h1>
+                        <div className="relative flex w-full max-w-7xl mt-10">
+                            {/* Mittlere Linie */}
+                            <div
+                                ref={lineRef} // Referenz für die Intersection Observer API
+                                className="absolute left-1/2 transform translate-y-16 -translate-x-1/2 h-[775px] w-3 bg-gradient-to-b from-[#D0C9C1] to-[#313131]"
+                            >
+                                {/* Rote Linie für die zurückgelegte Strecke */}
+                                <div
+                                    className="absolute left-1/2 transform -translate-x-1/2 w-3 bg-gradient-to-t from-[#DB134C] to-[#7B0A2A]"
+                                    style={{ height: `${scrollY}px`, top: 0 }}
+                                ></div>
+
+                                {/* Ball */}
+                                <div
+                                    className="absolute left-1/2 transform -translate-x-1/2 size-8 bg-[#DB134C] rounded-full transition-all duration-75 ease-in-out"
+                                    style={{ transform: `translateY(${scrollY}px)` }}
+                                ></div>
                             </div>
-                            <div className="space-y-10 flex flex-col items-center justify-center">
-                                <div className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-[250px] h-[130px] rounded-lg"></div>
-                                <div className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-[250px] h-[130px] rounded-lg"></div>
-                                <div className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-[250px] h-[130px] rounded-lg"></div>
+
+                            {/* Linke Seite: Company */}
+                            <div className="flex-1 flex flex-col items-center pr-10 space-y-10 text-right">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl dark:text-white">...a company</h2>
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                    <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] rounded-lg relative shadow-xl"></div>
+                                </div>
+                                <div className="space-y-20 mt-10">
+                                    <div className="relative flex items-center justify-center">
+                                        <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] border-2 border-white rounded-lg"></div>
+                                        <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                        <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] rounded-lg relative shadow-xl"></div>
+                                    </div>
+                                    <div className="relative flex items-center justify-center">
+                                        <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                                        <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                        <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative shadow-xl"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rechte Seite: Content Creator */}
+                            <div className="flex-1 flex flex-col items-center pl-10 space-y-10 text-left">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl text-center dark:text-white">...a content creator</h2>
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                    <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#1390B1] to-[#1357B1] rounded-lg relative shadow-xl"></div>
+                                </div>
+                                <div className="space-y-20 mt-10">
+                                    <div className="relative flex items-center justify-center">
+                                        <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] border-2 border-white rounded-lg"></div>
+                                        <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                        <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] rounded-lg relative shadow-xl"></div>
+                                    </div>
+                                    <div className="relative flex items-center justify-center">
+                                        <div className="blur-lg absolute w-[320px] h-[220px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                                        <div className="blur-xs absolute w-[310px] h-[210px] bg-white rounded-lg"></div>
+                                        <div className="w-[300px] h-[200px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative shadow-xl"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-col">
-                        <div className="flex justify-end">
-                            <div className="w-1/2 bg-white h-1"></div>
-                        </div>
-                        <div className="flex justify-center">
-                            <div className="h-20 w-1 -mt-1 bg-white"></div>
-                        </div>
-                    </div>
-                    <div className="mt-4 w-full">
-                        <h1 className="text-5xl text-center">
-                            ...choose of a varietey of offers and explore the world of cooperations and partnerships with Phamesh
+                    <div className="flex items-center flex-col space-y-16 justify-center mt-20 relative mb-20">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl text-center dark:text-white font-bold">
+                            ...choose of a variety of offers <br/> and explore the<br/>
+                            <span className="bg-gradient-to-r from-[#DB134C] to-[#7B0A2A] text-transparent bg-clip-text">world of cooperation&#39;s</span> and <br/>partnerships
+                            <br/>with Phamesh
                         </h1>
-                    </div>
-                    <div className="mt-4 flex justify-center items-center mb-10">
-                        <Link href="">
-                            <button className="text-4xl py-1 px-4 bg-red-600 text-white rounded-lg">start today</button>
+                        <Link href="/select-role">
+                            <div className="relative">
+                                <div
+                                    className="absolute inset-0 bg-[#DB134C] blur-lg transition-transform duration-300 ease-in-out"
+                                    style={{ animation: isHovered ? 'none' : 'pulse 3s infinite' }}
+                                ></div>
+
+                                <button
+                                    className="relative bg-[#DB134C] text-base sm:text-lg md:text-xl text-white px-6 py-3 rounded-lg transition-transform duration-300 ease-in-out"
+                                    style={{ animation: isHovered ? 'none' : 'pulse 3s infinite' }}
+                                    onMouseEnter={() => setIsHovered(true)}
+                                    onMouseLeave={() => setIsHovered(false)}
+                                >
+                                    start today!
+                                </button>
+
+                                <style>
+                                    {`
+                                @keyframes pulse {
+                                    0% {
+                                        transform: scale(1);
+                                    }
+                                    50% {
+                                        transform: scale(1.1);
+                                    }
+                                    100% {
+                                        transform: scale(1);
+                                    }
+                                }
+                                `}
+                                </style>
+                            </div>
                         </Link>
                     </div>
                 </main>
                 <Footer />
-            </>
-        )
-    }
-
-    return (
-        <>
-            <Navbar />
-            <main className="max-w-7xl mx-auto px-4">
-                <div className="flex flex-col md:flex-row justify-between items-center mt-24">
-                    <div className="max-w-[350px]">
-                        <h1 className="text-7xl">Cooperations was never that easy before</h1>
-                        <p className="text-3xl text-white">
-                            Connect your socials, find the cooperations that suit you the most, and you are ready to go. It
-                            doesn&#39;t matter if you are a content creator or a company.
-                        </p>
-                    </div>
-                    <div className="hidden md:block bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] md:w-[475px] md:h-[365px] md:rounded-lg"></div>
-                </div>
-
-                <div className="w-full mt-24 relative">
-                    <div className="flex justify-center relative z-10">
-                        <Link href="/select-role">
-                            <button className="text-5xl bg-red-600 px-4 py-2 rounded-lg text-white">Sign up for free</button>
-                        </Link>
-                    </div>
-
-                    <div className="w-full flex justify-center">
-                        <div className="flex w-full">
-                            <div className="w-1/2"></div>
-                            <div className="w-1/2 pr-4">
-                                <div className="h-1 bg-white -mt-8 w-full"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative">
-                        <div className="flex justify-end pr-4">
-                            <div className="h-[800px] w-1 bg-white -mt-8"></div>
-                        </div>
-
-                        <div className="absolute top-1/4 left-0 right-0 px-4 md:px-8 lg:px-12">
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                                <div className="order-1 bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-full md:w-[475px] h-[365px] rounded-lg shrink-0"></div>
-                                <div className="order-2 max-w-[350px]">
-                                    <h1 className="text-4xl">Connect with companies from all over the world</h1>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative pl-4">
-                        <div className="flex pr-4 pt-8">
-                            <div className="h-1 w-full bg-white -mt-8"></div>
-                        </div>
-
-                        <div className="absolute top-1/4 left-0 right-0 px-4 md:px-8 lg:px-12">
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                                <div className="order-2 bg-gradient-to-r from-[#DB134C] to-[#A31113] w-full md:w-[475px] h-[365px] rounded-lg shrink-0"></div>
-                                <div className="order-1 max-w-[350px]">
-                                    <h1 className="text-4xl">Choose from a big variety of cooperation offers</h1>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-start pr-4">
-                            <div className="h-[800px] w-1 bg-white -mt-8"></div>
-                            <div className="size-6 bg-white flex justify-start rounded-full absolute bottom-0 -translate-x-2.5"></div>
-                        </div>
-                    </div>
-                </div>
-                <div className="mt-4 w-full overflow-hidden">
-                    <h1 className="text-5xl mb-4 text-left">Our Partners:</h1>
-                    <div className="relative w-full">
-                        <motion.div
-                            className="flex space-x-6 whitespace-nowrap"
-                            animate={{
-                                x: ["0%", "-50%"],
-                            }}
-                            transition={{
-                                ease: "linear",
-                                duration: 10,
-                                repeat: Number.POSITIVE_INFINITY,
-                            }}
-                        >
-                            {[...partners, ...partners].map((color, index) => (
-                                <div key={index} className="min-w-[50px] h-[50px] rounded-lg" style={{ backgroundColor: color }} />
-                            ))}
-                        </motion.div>
-                    </div>
-                </div>
-
-                <div className="relative pr-4 mt-8">
-                    <div className="flex justify-end">
-                        <div className="size-6 bg-white rounded-lg"></div>
-                    </div>
-                    <div className="absolute w-full top-1/3">
-                        <div className="flex justify-center items-center">
-                            <p className="text-5xl">it doesn&#39;t matter whether you are...</p>
-                        </div>
-                    </div>
-                    <div className="flex justify-end pr-2.5 mt-4">
-                        <div className="h-[200px] w-1 bg-white -mt-8"></div>
-                    </div>
-                    <div className="pr-2.5 flex justify-end">
-                        <div className="h-1 w-[calc(50%-12px)] bg-white"></div>
-                    </div>
-                </div>
-
-                <div className="relative flex justify-center -mt-1">
-                    {/* Mittlere Linie */}
-                    <div className="h-[1500px] w-1 bg-white mx-10"></div>
-
-                    <div className="absolute max-w-7xl mx-auto w-full mt-10">
-                        <div className="flex justify-between items-start w-full">
-                            {/* Linke Seite */}
-                            <div className="flex-1 flex flex-col items-center space-y-10">
-                                <h2 className="text-6xl">...a company</h2>
-                                <div className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-[430px] h-[300px] rounded-lg"></div>
-                                <div className="space-y-40 mt-20">
-                                    <div className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-[430px] h-[300px] rounded-lg"></div>
-                                    <div className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-[430px] h-[300px] rounded-lg"></div>
-                                </div>
-                            </div>
-
-                            {/* Rechte Seite */}
-                            <div className="flex-1 flex flex-col items-center space-y-10">
-                                <h2 className="text-6xl">...a content creator</h2>
-                                <div className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-[430px] h-[300px] rounded-lg"></div>
-                                <div className="space-y-40 mt-20">
-                                    <div className="bg-gradient-to-r from-[#1390B1] to-[#1357B1] w-[430px] h-[300px] rounded-lg"></div>
-                                    <div className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-[430px] h-[300px] rounded-lg"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex flex-col justify-center items-center mt-10">
-                    <h1 className="text-7xl max-w-3xl text-center">
-                        ...choose of a varietey of offers and explore the world of cooperations and partnerships with Phamesh
-                    </h1>
-                    <Link href="">
-                        <button className="text-5xl mt-10 mb-44 px-8 py-2 bg-red-600 rounded-lg text-white">start today</button>
-                    </Link>
-                </div>
-            </main>
-            <Footer />
+            </div>
         </>
     )
 }

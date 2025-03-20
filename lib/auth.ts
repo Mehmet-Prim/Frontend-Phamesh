@@ -1,57 +1,68 @@
-import { jwtDecode } from "jwt-decode"
+// Hilfsfunktionen für die Authentifizierung
 
-interface User {
-    sub: string // email
-    exp: number
-    role: string
-}
-
-export const getToken = (): string | null => {
+/**
+ * Holt das JWT-Token aus dem localStorage oder sessionStorage
+ */
+export function getToken(): string | null {
     if (typeof window === "undefined") return null
-    return localStorage.getItem("token")
+
+    return localStorage.getItem("token") || sessionStorage.getItem("token")
 }
 
-export const isAuthenticated = (): boolean => {
-    const token = getToken()
-    if (!token) return false
-
-    try {
-        const decoded = jwtDecode<User>(token)
-        const currentTime = Date.now() / 1000
-
-        return decoded.exp > currentTime
-    } catch (error) {
-        return false
-    }
-}
-
-export const getUserRole = (): string | null => {
-    const token = getToken()
-    if (!token) return null
-
-    try {
-        const decoded = jwtDecode<User>(token)
-        return decoded.role
-    } catch (error) {
-        return null
-    }
-}
-
-export const getUserEmail = (): string | null => {
-    const token = getToken()
-    if (!token) return null
-
-    try {
-        const decoded = jwtDecode<User>(token)
-        return decoded.sub
-    } catch (error) {
-        return null
-    }
-}
-
-export const logout = () => {
+/**
+ * Speichert das JWT-Token im localStorage oder sessionStorage
+ */
+export function setToken(token: string, rememberMe = false): void {
     if (typeof window === "undefined") return
+
+    if (rememberMe) {
+        localStorage.setItem("token", token)
+    } else {
+        sessionStorage.setItem("token", token)
+    }
+}
+
+/**
+ * Entfernt das JWT-Token aus dem localStorage und sessionStorage
+ */
+export function removeToken(): void {
+    if (typeof window === "undefined") return
+
     localStorage.removeItem("token")
-    localStorage.removeItem("user")
+    sessionStorage.removeItem("token")
+}
+
+/**
+ * Speichert die Benutzerrolle im localStorage
+ */
+export function setUserRole(role: string): void {
+    if (typeof window === "undefined") return
+
+    localStorage.setItem("userRole", role)
+}
+
+/**
+ * Holt die Benutzerrolle aus dem localStorage
+ */
+export function getUserRole(): string | null {
+    if (typeof window === "undefined") return null
+
+    return localStorage.getItem("userRole")
+}
+
+/**
+ * Entfernt die Benutzerrolle aus dem localStorage
+ */
+export function removeUserRole(): void {
+    if (typeof window === "undefined") return
+
+    localStorage.removeItem("userRole")
+}
+
+/**
+ * Prüft, ob der Benutzer authentifiziert ist
+ */
+export function isAuthenticated(): boolean {
+    return !!getToken()
 }
 

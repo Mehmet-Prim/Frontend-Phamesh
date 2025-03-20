@@ -22,51 +22,119 @@ export default function SelectRole() {
         return () => window.removeEventListener("resize", handleResize)
     }, [])
 
+    // Neue Funktionen für die Weiterleitung mit Rollenparameter
+    const handleCompanySelect = () => {
+        // Zur einheitlichen Registrierungsseite mit Rollenparameter weiterleiten
+        router.push("/register?role=COMPANY")
+    }
+
+    const handleContentCreatorSelect = () => {
+        // Zur einheitlichen Registrierungsseite mit Rollenparameter weiterleiten
+        router.push("/register?role=CONTENT_CREATOR")
+    }
+
     if (isMobile) {
         return (
             <>
-                <Navbar />
-                <main className="max-w-7xl mx-auto mb-36 mt-36">
-                    <div className="flex flex-col items-center justify-center">
-                        <h1 className="text-5xl max-w-[600px] text-center">
-                            Before you can start, we need to know whether you are a
-                        </h1>
-                        <div className="size-6 bg-white rounded-full mt-5"></div>
-                        <div className="h-10 w-1 bg-white"></div>
-                    </div>
-                    <div className="pl-10">
-                        <div className="flex justify-start w-full">
-                            <div className="w-[calc(50%-18px)] h-1 bg-white"></div>
+                <div className="dark:bg-[#161616] bg-[#F2EFE7]">
+                    <Navbar />
+                    <main className="max-w-7xl mx-auto mb-24 mt-24 px-4 sm:px-6 lg:px-8 min-h-screen">
+                        <div className="flex flex-col items-center justify-center text-center mb-20">
+                            <h1 className="text-3xl sm:text-4xl font-bold text-black dark:text-white mb-6">
+                                Before you can start, we need to know whether you are a...
+                            </h1>
                         </div>
 
-                        <div className="relative w-full flex">
-                            <div className="flex flex-col items-start">
-                                <div className="h-[400px] w-1 bg-white"></div>
-
-                                <div className="flex flex-col min-w-full w-full">
-                                    <div className="w-[30%] h-1 bg-white absolute top-1/2"></div>
-                                    <div className="w-[30%] h-1 bg-white absolute"></div>
-
-                                    <div className="absolute top-[28%] right-0">
-                                        <div
-                                            className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-90 h-48 flex items-center justify-between rounded-l-4xl gap-4"
-                                            onClick={() => router.push("/login/company")}
-                                            style={{ cursor: "pointer" }}
-                                        >
-                                            <h6 className="text-center text-5xl ml-5">...company</h6>
-                                            <Image className="w-24 mr-5" src={Company || "/placeholder.svg"} alt={"Company Icon"} />
-                                        </div>
+                        <div className="space-y-12">
+                            {/* Company Card */}
+                            <div className="relative flex justify-start -left-10">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[300px] h-[200px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[290px] h-[190px] bg-white rounded-lg"></div>
+                                    <div
+                                        className="w-72 h-48 bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative flex flex-col items-center justify-center shadow-2xl hover:shadow-3xl transition-shadow duration-300"
+                                        onClick={handleCompanySelect}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <Image
+                                            className="mb-3"
+                                            src={Company || "/placeholder.svg"}
+                                            alt={"Company Icon"}
+                                            width={60}
+                                            height={60}
+                                        />
+                                        <h6 className="text-center text-2xl font-semibold text-white">...company</h6>
                                     </div>
+                                </div>
+                            </div>
 
-                                    <div className="absolute top-[78%] right-0">
-                                        <div
-                                            className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-90 h-48 flex items-center justify-between rounded-l-4xl gap-4"
-                                            onClick={() => router.push("/login/content-creator")}
-                                            style={{ cursor: "pointer" }}
-                                        >
-                                            <h6 className="text-center text-5xl ml-5">...content creator</h6>
-                                            <Image className="w-24 mr-5" src={ContentCreator || "/placeholder.svg"} alt={"Company Icon"} />
-                                        </div>
+                            {/* Content Creator Card */}
+                            <div className="relative flex justify-end -right-10">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[300px] h-[200px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[290px] h-[190px] bg-white rounded-lg"></div>
+                                    <div
+                                        className="w-72 h-48 bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] rounded-lg relative flex flex-col items-center justify-center shadow-2xl hover:shadow-3xl transition-shadow duration-300"
+                                        onClick={handleContentCreatorSelect}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <Image
+                                            className="mb-3"
+                                            src={ContentCreator || "/placeholder.svg"}
+                                            alt={"Content Creator Icon"}
+                                            width={60}
+                                            height={60}
+                                        />
+                                        <h6 className="text-center text-2xl font-semibold text-white">...content creator</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            </>
+        )
+    }
+
+    return (
+        <>
+            <div className="dark:bg-[#161616] bg-[#F2EFE7]">
+                <Navbar />
+                <main className="max-w-7xl mx-auto min-h-screen mt-60 flex flex-col items-center px-8">
+                    <h1 className="text-5xl text-center dark:text-white">
+                        before you can start we <br /> need to know whether you are a...
+                    </h1>
+                    <div className="relative mt-16 flex flex-col items-center justify-center w-full">
+                        <div className="size-6 bg-black rounded-full dark:bg-[#F2EFE7]"></div>
+                        <div className="h-[200px] w-1 bg-black dark:bg-[#F2EFE7]"></div>
+                        <div className="w-3/12 h-1 bg-black dark:bg-[#F2EFE7]"></div>
+                        <div className="flex justify-between items-center w-full relative">
+                            <div className="absolute">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[404px] h-[276px] bg-gradient-to-br from-[#DDB40C] to-[#EA6907] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[394px] h-[266px] bg-white rounded-lg"></div>
+                                    <div
+                                        className=" w-96 h-64 bg-gradient-to-br from-[#DDB40C] to-[#EA6907] rounded-lg relative flex flex-col items-center justify-center shadow-xl"
+                                        onClick={handleCompanySelect}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <Image className="" src={Company || "/placeholder.svg"} alt={"Company Icon"} />
+                                        <h6 className="text-center text-3xl text-white">...company</h6>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="absolute right-0">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="blur-lg absolute w-[404px] h-[276px] bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] border-2 border-white rounded-lg"></div>
+                                    <div className="blur-xs absolute w-[394px] h-[266px] bg-white rounded-lg"></div>
+                                    <div
+                                        className=" w-96 h-64 bg-gradient-to-br from-[#DB134C] to-[#7B0A2A] rounded-lg relative flex flex-col items-center justify-center shadow-xl"
+                                        onClick={handleContentCreatorSelect}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <Image className="" src={ContentCreator || "/placeholder.svg"} alt={"Content Creator Icon"} />
+                                        <h6 className="text-center text-3xl text-white">...content creator</h6>
                                     </div>
                                 </div>
                             </div>
@@ -74,44 +142,7 @@ export default function SelectRole() {
                     </div>
                 </main>
                 <Footer />
-            </>
-        )
-    }
-
-    return (
-        <>
-            <Navbar />
-            <main className="max-w-7xl mx-auto min-h-screen mt-60 flex flex-col items-center px-8">
-                <h1 className="text-5xl w-[450px] text-center">before you can start we need to know whether you are a...</h1>
-                <div className="relative mt-16 flex flex-col items-center justify-center w-full">
-                    <div className="size-6 bg-white rounded-full"></div>
-                    <div className="h-[200px] w-1 bg-white"></div>
-                    <div className="w-3/12 h-1 bg-white"></div>
-                    <div className="flex justify-between items-center w-full relative">
-                        <div className="absolute">
-                            <div
-                                className="bg-gradient-to-r from-[#DDB40C] to-[#D18B0A] w-96 h-64 flex flex-col items-center justify-center rounded-lg"
-                                onClick={() => router.push("/login/company")}
-                                style={{ cursor: "pointer" }}
-                            >
-                                <Image className="" src={Company || "/placeholder.svg"} alt={"Company Icon"} />
-                                <h6 className="text-center text-5xl">...company</h6>
-                            </div>
-                        </div>
-                        <div className="absolute right-0">
-                            <div
-                                className="bg-gradient-to-r from-[#DB134C] to-[#A31113] w-96 h-64 flex flex-col items-center justify-center rounded-lg"
-                                onClick={() => router.push("/login/content-creator")}
-                                style={{ cursor: "pointer" }}
-                            >
-                                <Image className="" src={ContentCreator || "/placeholder.svg"} alt={"Content Creator Icon"} />
-                                <h6 className="text-center text-5xl">...content creator</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-            <Footer />
+            </div>
         </>
     )
 }

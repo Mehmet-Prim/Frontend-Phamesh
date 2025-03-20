@@ -1,113 +1,152 @@
-import { getToken } from "./auth"
-import { getApiUrl } from "./api-config"
+/**
+ * API-Client für die Kommunikation mit dem Backend
+ */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+// Basis-URL aus der Umgebungsvariable
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
-interface FetchOptions extends RequestInit {
-    token?: string | null
-    params?: Record<string, any>
-}
+// Hilfsfunktion für API-Anfragen
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+    // Token aus dem localStorage holen
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
-// Füge eine Fehlerbehandlung hinzu, die mehr Details ausgibt
-export async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-    const { token = getToken(), params, method, ...fetchOptions } = options // Add method to destructured options
-
-    const headers = new Headers(options.headers)
-
-    if (token) {
-        headers.set("Authorization", `Bearer ${token}`)
-    }
-
-    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
-        headers.set("Content-Type", "application/json")
-    }
-
-    // URL mit Query-Parametern erstellen
-    let url = getApiUrl(endpoint)
-
-    if (params) {
-        const queryParams = new URLSearchParams()
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                queryParams.append(key, String(value))
-            }
-        })
-
-        const queryString = queryParams.toString()
-        if (queryString) {
-            url += `?${queryString}`
-        }
+    // Headers mit Authorization-Token
+    const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
     }
 
     try {
-        const response = await fetch(url, {
-            ...fetchOptions,
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
             headers,
-            method, // Use the method from options
         })
 
-        const data = await response.json()
-
-        if (!response.ok) {
-            console.error("API Error:", endpoint, data)
-            throw new Error(data.message || "Something went wrong")
+        // Wenn der Token abgelaufen ist (401), zur Login-Seite weiterleiten
+        if (response.status === 401 && typeof window !== "undefined") {
+            localStorage.removeItem("token")
+            window.location.href = "/login"
+            return null
         }
 
-        return data
+        // Wenn die Anfrage nicht erfolgreich war, einen Fehler werfen
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.message || `API-Fehler: ${response.status}`)
+        }
+
+        // Wenn die Antwort leer ist, null zurückgeben
+        const contentType = response.headers.get("content-type")
+        if (!contentType || !contentType.includes("application/json")) {
+            return null
+        }
+
+        return await response.json()
     } catch (error) {
-        console.error("Fetch Error:", endpoint, error)
+        console.error("API-Fehler:", error)
         throw error
     }
 }
 
-// Mock implementations or imports for the missing functions
-const getAuthToken = () => {
-    console.warn("getAuthToken is not implemented")
+/**
+ * Holt die Benutzerrolle aus dem lokalen Speicher oder vom Server
+ * @returns Die Benutzerrolle als String oder null, wenn nicht authentifiziert
+ */
+export async function getUserRole(): Promise<string | null> {
+    // Prüfen, ob wir im Browser sind
+    if (typeof window === "undefined") return null
+
+    // Versuchen, die Benutzerrolle aus dem lokalen Speicher zu holen
+    const userStr = localStorage.getItem("user")
+    if (userStr) {
+        try {
+            const user = JSON.parse(userStr)
+            if (user && user.role) return user.role
+        } catch (e) {
+            console.error("Fehler beim Parsen der Benutzerdaten:", e)
+        }
+    }
+
+    // Wenn keine Rolle im lokalen Speicher gefunden wurde, vom Server holen
+    try {
+        const user = await api.users.getCurrent()
+        if (user && user.role) {
+            // Benutzer im lokalen Speicher aktualisieren
+            localStorage.setItem("user", JSON.stringify(user))
+            return user.role
+        }
+    } catch (e) {
+        console.error("Fehler beim Abrufen der Benutzerrolle:", e)
+    }
+
     return null
 }
 
-const getUserRole = () => {
-    console.warn("getUserRole is not implemented")
-    return null
-}
-
-const isContentCreator = () => {
-    console.warn("isContentCreator is not implemented")
-    return false
-}
-
-const isCompany = () => {
-    console.warn("isCompany is not implemented")
-    return false
-}
-
-// Add these named exports at the end of the file, before the api object export
-export { getAuthToken, getUserRole, isContentCreator, isCompany }
-
+// API-Funktionen
 export const api = {
-    get: <T>(endpoint: string, options?: FetchOptions) =>
-        fetchApi<T>(endpoint, { method: 'GET', ...options }),
+    // Auth-Endpunkte
+    auth: {
+        login: async (email: string, password: string) => {
+            return fetchWithAuth("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ email, password }),
+            })
+        },
+        register: async (userData: any) => {
+            return fetchWithAuth("/api/auth/register", {
+                method: "POST",
+                body: JSON.stringify(userData),
+            })
+        },
+        forgotPassword: async (email: string) => {
+            return fetchWithAuth("/api/auth/forgot-password", {
+                method: "POST",
+                body: JSON.stringify({ email }),
+            })
+        },
+        resetPassword: async (token: string, password: string) => {
+            return fetchWithAuth("/api/auth/reset-password", {
+                method: "POST",
+                body: JSON.stringify({ token, password }),
+            })
+        },
+        logout: async () => {
+            if (typeof window !== "undefined") {
+                localStorage.removeItem("token")
+                localStorage.removeItem("user")
+            }
+        },
+    },
 
-    post: <T>(endpoint: string, data: any, options?: FetchOptions) =>
-        fetchApi<T>(endpoint, {
-            method: 'POST',
-            body: JSON.stringify(data),
-            ...options
-        }),
+    // Dashboard-Endpunkte
+    dashboard: {
+        getData: async () => {
+            return fetchWithAuth("/api/dashboard")
+        },
+    },
 
-    put: <T>(endpoint: string, data: any, options?: FetchOptions) =>
-        fetchApi<T>(endpoint, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-            ...options
-        }),
+    // Benutzer-Endpunkte
+    users: {
+        getCurrent: async () => {
+            return fetchWithAuth("/api/users/me")
+        },
+        update: async (userData: any) => {
+            return fetchWithAuth("/api/users/me", {
+                method: "PUT",
+                body: JSON.stringify(userData),
+            })
+        },
+        changePassword: async (oldPassword: string, newPassword: string) => {
+            return fetchWithAuth("/api/users/change-password", {
+                method: "POST",
+                body: JSON.stringify({ oldPassword, newPassword }),
+            })
+        },
+    },
 
-    delete: <T>(endpoint: string, options?: FetchOptions) =>
-        fetchApi<T>(endpoint, { method: 'DELETE', ...options }),
-
-    isContentCreator,
-    isCompany,
-    getAuthToken,
-    getUserRole
+    // Weitere Endpunkte können hier hinzugefügt werden
 }
+
+export default api
 

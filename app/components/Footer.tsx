@@ -2,95 +2,106 @@
 
 import Image from "next/image"
 import Logo from "@/public/LogoVoll.png"
-import LogoKlein from "@/public/Logo.png"
 import Link from "next/link"
-import { useEffect, useState } from "react"
 
 export function Footer() {
-    const [isMobile, setIsMobile] = useState(false)
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 900)
-        }
-
-        handleResize()
-        window.addEventListener("resize", handleResize)
-        return () => window.removeEventListener("resize", handleResize)
-    }, [])
-
-    if (isMobile) {
-        return (
-            <>
-                <div className="bg-[#A7A7A7] py-12 w-full">
-                    <footer className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex flex-row justify-between items-center gap-8">
-                            {/* Logo Section */}
-                            <div className="flex flex-col items-center md:items-start space-y-4">
-                                <Image
-                                    src={LogoKlein || "/placeholder.svg"}
-                                    alt="Phamesh Logo"
-                                    className="h-16 w-auto transition-opacity hover:opacity-80"
-                                />
-                                <p className="text-2xl text-[#454545] font-light text-nowrap">
-                                    © {new Date().getFullYear()} Phamesh.inc
-                                </p>
-                            </div>
-
-                            {/* Navigation Links */}
-                            <nav className="flex flex-row gap-6 md:gap-12 text-center">
-                                <div className="space-y-2">
-                                    <Link href="/" className="group inline-block">
-                                        <h2 className="text-4xl text-[#454545] hover:text-black transition-colors font-medium">Home</h2>
-                                    </Link>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Link href="/" className="group inline-block">
-                                        <h2 className="text-4xl text-[#454545] hover:text-black transition-colors font-medium">Products</h2>
-                                    </Link>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Link href="/" className="group inline-block">
-                                        <h2 className="text-4xl text-[#454545] hover:text-black transition-colors font-medium">Company</h2>
-                                    </Link>
-                                </div>
-                            </nav>
-                        </div>
-
-                        {/* Bottom Copyright */}
-                        <div className="mt-12 border-t border-[#909090] pt-8 text-center">
-                            <p className="text-2xl text-[#454545]">All rights reserved | Terms of Service | Privacy Policy</p>
-                        </div>
-                    </footer>
-                </div>
-            </>
-        )
-    }
-
     return (
-        <div className="bg-[#A7A7A7] h-64 w-full flex flex-col justify-center items-center">
-            <footer className="max-w-7xl w-full flex justify-between items-center px-6">
-                {/* Linke Seite - Logo */}
-                <div className="flex flex-col items-start">
-                    <Image src={Logo || "/placeholder.svg"} alt="Phamesh Logo" className="h-20 w-auto" />
-                    <p className="text-2xl text-black mt-2">© {new Date().getFullYear()} Phamesh.inc</p>
+        <>
+            <footer className="w-full px-4 sm:px-6 md:px-10 py-6 bg-[#D0C9C1] dark:bg-[#363636] md:rounded-full rounded-[5rem] mx-auto lg:px-8 max-w-7xl">
+                <div className="flex flex-row justify-between items-center gap-8 max-w-5xl mx-auto">
+                    {/* Left Side - Logo */}
+                    <div className="flex flex-col items-center md:items-start justify-end">
+                        <Image src={Logo || "/placeholder.svg"} alt="Phamesh Logo" className="h-16 sm:h-20 w-auto" />
+                        <p className="text-sm mt-2 dark:text-[#9A9A9A]">© {new Date().getFullYear()} Phamesh.inc</p>
+                    </div>
+
+                    {/* Middle Section - Navigation */}
+                    <div className="md:flex flex-col sm:flex-row space-y-6 sm:space-y-0 sm:space-x-6 md:space-x-12 hidden text-black">
+                        {/* Products */}
+                        <div className="text-center sm:text-left">
+                            <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium">products</h3>
+                            <ul className="space-y-1 mt-2">
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        pricing
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        news
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Company */}
+                        <div className="text-center sm:text-left sm:border-l sm:border-black sm:dark:border-[#F2EFE7] sm:pl-4">
+                            <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium">company</h3>
+                            <ul className="space-y-1 mt-2">
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        about us
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        terms
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        privacy
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Resources */}
+                        <div className="text-center sm:text-left sm:border-l sm:border-black sm:dark:border-[#F2EFE7] sm:pl-4">
+                            <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium">resources</h3>
+                            <ul className="space-y-1 mt-2">
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        tutorials
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="" className="dark:text-[#F2EFE7]">
+                                        help center
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Right Side - Buttons */}
+                    <div className="flex flex-col space-x-3 space-y-3">
+                        <Link href="/">
+                            <button className="bg-[#3282B8] text-white px-4 sm:px-6 py-1 rounded-md text-sm sm:text-base text-nowrap">
+                                Sign in
+                            </button>
+                        </Link>
+                        <Link href="/">
+                            <button className="bg-[#C21F39] text-white px-5 sm:px-[30px] py-1 rounded-md text-sm sm:text-base">
+                                log in
+                            </button>
+                        </Link>
+                    </div>
                 </div>
 
-                {/* Mittlerer Bereich - Navigation */}
-                <div className="flex space-x-12 text-black">
+                {/* Middle Section - Navigation */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 text-black md:hidden justify-items-center mt-5 mb-5">
                     {/* Products */}
-                    <div>
-                        <h3 className="text-4xl text-[#454545]">products</h3>
-                        <ul className="space-y-1">
+                    <div className="text-left border-l border-black dark:border-[#F2EFE7] pl-2 sm:pl-4">
+                        <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium text-sm sm:text-base">products</h3>
+                        <ul className="space-y-1 mt-1 sm:mt-2">
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     pricing
                                 </Link>
                             </li>
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     news
                                 </Link>
                             </li>
@@ -98,21 +109,21 @@ export function Footer() {
                     </div>
 
                     {/* Company */}
-                    <div className="border-l border-black pl-4">
-                        <h3 className="text-4xl text-[#454545]">company</h3>
-                        <ul className="space-y-1">
+                    <div className="text-left border-l border-black dark:border-[#F2EFE7] pl-2 sm:pl-4">
+                        <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium text-sm sm:text-base">company</h3>
+                        <ul className="space-y-1 mt-1 sm:mt-2">
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     about us
                                 </Link>
                             </li>
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     terms
                                 </Link>
                             </li>
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     privacy
                                 </Link>
                             </li>
@@ -120,16 +131,16 @@ export function Footer() {
                     </div>
 
                     {/* Resources */}
-                    <div className="border-l border-black pl-4">
-                        <h3 className="text-4xl text-[#454545]">resources</h3>
-                        <ul className="space-y-1">
+                    <div className="text-left border-l border-black dark:border-[#F2EFE7] pl-2 sm:pl-4">
+                        <h3 className="text-[#454545] dark:text-[#9A9A9A] font-medium text-sm sm:text-base">resources</h3>
+                        <ul className="space-y-1 mt-1 sm:mt-2">
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     tutorials
                                 </Link>
                             </li>
                             <li>
-                                <Link href="" className="text-4xl">
+                                <Link href="" className="dark:text-[#F2EFE7] text-xs sm:text-sm">
                                     help center
                                 </Link>
                             </li>
@@ -137,35 +148,28 @@ export function Footer() {
                     </div>
                 </div>
 
-                {/* Rechte Seite - Buttons */}
-                <div className="flex flex-col space-y-5">
-                    <Link href="/">
-                        <button className="bg-[#3282B8] text-white px-6 py-1 rounded-md text-4xl">Sign in</button>
-                    </Link>
-                    <Link href="/">
-                        <button className="bg-[#C21F39] text-white px-[30px] py-1 rounded-md text-4xl">log in</button>
-                    </Link>
+                {/* Bottom Section - Additional Links */}
+                <div className="flex justify-center items-center max-w-7xl mt-6 md:mt-5">
+                    <ul className="flex flex-row items-center justify-center space-x-4 space-y-0 md:space-x-12">
+                        <li>
+                            <Link href="" className="text-[#454545] dark:text-[#9A9A9A] text-sm">
+                                privacy hub
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="" className="text-[#454545] dark:text-[#9A9A9A] text-sm">
+                                disclaimer
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="" className="text-[#454545] dark:text-[#9A9A9A] text-sm">
+                                return policy
+                            </Link>
+                        </li>
+                    </ul>
                 </div>
             </footer>
-            <div className="flex justify-center items-center max-w-7xl">
-                <ul className="flex items-center justify-center space-x-12 mt-5">
-                    <li>
-                        <Link href="" className="text-3xl text-[#454545]">
-                            privacy hub
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="" className="text-3xl text-[#454545]">
-                            disclaimer
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="" className="text-3xl text-[#454545]">
-                            return policy
-                        </Link>
-                    </li>
-                </ul>
-            </div>
-        </div>
+        </>
     )
 }
+

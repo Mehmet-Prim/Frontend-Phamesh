@@ -1,179 +1,98 @@
 "use client"
 
 import type React from "react"
-import { Navbar } from "@/app/components/Navbar"
-import { Footer } from "@/app/components/Footer"
-import { useState, useEffect } from "react"
+
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import ContentCreator from "@/public/icons/contentCreatorIcon.png"
-import Image from "next/image"
-import { AuthService } from "@/services/auth-service"
-import type { RegistrationRequest } from "@/types/auth"
-import { testApiConnection } from "@/lib/api-connection-helper"
-import { forceContentCreatorRole } from "@/lib/auth-debug"
-import ApiConnectionDebugger from "@/components/api-connection-debugger"
-import ApiPathExplorer from "@/components/api-path-explorer"
+import { AuthService } from "@/lib/services/auth-service"
+import { Navbar } from "@/app/components/Navbar"
+import { Footer } from "@/app/components/Footer"
 
-export default function ContentCreatorRegister() {
-    const router = useRouter()
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        username: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        contentType: "",
-        socialMedia: {
-            instagram: "",
-            youtube: "",
-            tiktok: "",
-            twitter: "",
-        },
-        bio: "",
-        termsAgreed: false,
-    })
-    const [error, setError] = useState("")
+export default function ContentCreatorRegisterPage() {
+    const [email, setEmail] = useState("")
+    const [username, setUsername] = useState("")
+    const [firstName, setFirstName] = useState("")
+    const [lastName, setLastName] = useState("")
+    const [password, setPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [bio, setBio] = useState("")
+    const [contentType, setContentType] = useState("lifestyle")
+    const [termsAgreed, setTermsAgreed] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [debugInfo, setDebugInfo] = useState<string | null>(null)
-    const [apiUrl, setApiUrl] = useState<string | null>(null)
-    const [showDebugger, setShowDebugger] = useState(false)
-    const [showPathExplorer, setShowPathExplorer] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [socialMedia, setSocialMedia] = useState({
+        instagram: "",
+        youtube: "",
+        tiktok: "",
+        twitter: "",
+        twitch: "",
+        snapchat: "",
+        facebook: "",
+    })
+    const router = useRouter()
 
-    // Überprüfe die API-URL beim Laden der Komponente
-    useEffect(() => {
-        const url = process.env.NEXT_PUBLIC_API_URL || "Not set"
-        setApiUrl(url)
-        console.log("Current API URL:", url)
-    }, [])
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target as HTMLInputElement & { type: string }
-
-        if (name.includes(".")) {
-            const [parent, child] = name.split(".")
-            setFormData((prev) => ({
-                ...prev,
-                [parent]: {
-                    ...(prev[parent as keyof typeof prev] as Record<string, string>),
-                    [child]: value,
-                },
-            }))
-        } else if (type === "checkbox") {
-            setFormData((prev) => ({
-                ...prev,
-                [name]: (e.target as HTMLInputElement).checked,
-            }))
-        } else {
-            setFormData((prev) => ({
-                ...prev,
-                [name]: value,
-            }))
-        }
+    const handleSocialMediaChange = (platform: string, value: string) => {
+        setSocialMedia({
+            ...socialMedia,
+            [platform]: value,
+        })
     }
 
-    // Füge Debugging-Ausgaben hinzu, um den Registrierungsprozess zu verfolgen
+    const validateForm = () => {
+        if (!email || !username || !firstName || !lastName || !password || !confirmPassword) {
+            setError("Bitte füllen Sie alle Pflichtfelder aus")
+            return false
+        }
+
+        if (password !== confirmPassword) {
+            setError("Die Passwörter stimmen nicht überein")
+            return false
+        }
+
+        if (password.length < 8) {
+            setError("Das Passwort muss mindestens 8 Zeichen lang sein")
+            return false
+        }
+
+        if (!termsAgreed) {
+            setError("Bitte stimmen Sie den Nutzungsbedingungen zu")
+            return false
+        }
+
+        return true
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError("")
-        setDebugInfo(null)
 
-        // Validate form
-        if (
-            !formData.firstName ||
-            !formData.lastName ||
-            !formData.email ||
-            !formData.password ||
-            !formData.confirmPassword
-        ) {
-            setError("Please fill in all required fields")
+        if (!validateForm()) {
             return
         }
-
-        if (formData.password !== formData.confirmPassword) {
-            setError("Passwords do not match")
-            return
-        }
-
-        if (formData.password.length < 8) {
-            setError("Password must be at least 8 characters long")
-            return
-        }
-
-        if (!formData.termsAgreed) {
-            setError("You must agree to the Terms of Service and Privacy Policy")
-            return
-        }
-
-        // Überprüfe, ob die API-URL gesetzt ist
-        if (!process.env.NEXT_PUBLIC_API_URL) {
-            setError("API URL is not configured. Please set NEXT_PUBLIC_API_URL environment variable.")
-            setDebugInfo(`Current API URL: ${apiUrl}`)
-            return
-        }
-
-        setLoading(true)
 
         try {
-            // Setze die Rolle auf CONTENT_CREATOR
-            forceContentCreatorRole()
+            setLoading(true)
+            setError(null)
 
-            // Log the API URL for debugging
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
-            setDebugInfo(`Attempting registration with API URL: ${API_URL}/auth/register/content_creator`)
-
-            const registrationRequest: RegistrationRequest = {
-                termsAgreed: false,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                contentType: formData.contentType,
-                bio: formData.bio,
-                // Explizit die Rolle als CONTENT_CREATOR setzen
-                role: "CONTENT_CREATOR",
-                userType: "CONTENT_CREATOR",
-                isContentCreator: true
-            }
-
-            console.log("Content Creator Registration Request:", JSON.stringify(registrationRequest, null, 2))
-
-            // Use the AuthService directly for registration
-            const response = await AuthService.registerContentCreator(registrationRequest)
-            console.log("Content Creator Registration Response:", response)
-
-            if (response.success) {
-                // Speichere die Rolle für die spätere Verwendung
-                localStorage.setItem("pendingRegistrationRole", "CONTENT_CREATOR")
-                router.push("/login/content-creator?registered=true")
-                return
-            }
-
-            // If registration failed, show the error message
-            setError(response.message || "Registration failed. Please try again.")
-
-            // If there's a connection issue, test the API connection
-            if (response.message?.includes("failed") || response.message?.includes("Failed to fetch")) {
-                const connectionTest = await testApiConnection()
-                setDebugInfo(JSON.stringify(connectionTest, null, 2))
-                setShowDebugger(true)
-            }
-        } catch (err: any) {
-            console.error("Registration error:", err)
-            setError(
-                err.message || "An error occurred during registration. Please check your internet connection and try again.",
+            await AuthService.registerCreator(
+                email,
+                password,
+                firstName,
+                lastName,
+                username,
+                contentType,
+                bio,
+                socialMedia.instagram,
+                socialMedia.youtube,
+                socialMedia.tiktok,
+                socialMedia.twitter,
             )
 
-            // Zeige detaillierte Fehlerinformationen an
-            if (err.response) {
-                setDebugInfo(`Error response: ${JSON.stringify(err.response.data, null, 2)}`)
-            } else {
-                setDebugInfo(`Error: ${err.message || "Unknown error"}`)
-            }
-
-            // Aktiviere den Debugger
-            setShowDebugger(true)
+            // Weiterleitung zur Verifizierungsseite mit E-Mail-Parameter
+            router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+        } catch (err: any) {
+            console.error("Registration error:", err)
+            setError(err.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es später erneut.")
         } finally {
             setLoading(false)
         }
@@ -182,356 +101,243 @@ export default function ContentCreatorRegister() {
     return (
         <>
             <Navbar />
-            <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-3xl mx-auto">
-                    <div className="flex justify-center mb-8">
-                        <Image src={ContentCreator || "/placeholder.svg"} alt="Content Creator Icon" className="w-24 h-24" />
-                    </div>
-                    <h2 className="mt-6 text-center text-5xl font-extrabold text-white">Register as a Content Creator</h2>
-                    <p className="mt-2 text-center text-2xl text-gray-300">
-                        Or{" "}
-                        <Link href="/login/content-creator" className="font-medium text-red-300 hover:text-red-200">
-                            sign in if you already have an account
-                        </Link>
-                    </p>
-
-                    <div className="mt-8">
-                        {apiUrl === "Not set" && (
-                            <div
-                                className="bg-yellow-100 border text-2xl border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4"
-                                role="alert"
-                            >
-                <span className="block sm:inline">
-                  Warning: NEXT_PUBLIC_API_URL is not set. API requests will fail.
-                </span>
-                            </div>
-                        )}
-
-                        {error && (
-                            <div
-                                className="bg-red-100 border text-2xl border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
-                                role="alert"
-                            >
-                                <span className="block sm:inline">{error}</span>
-                            </div>
-                        )}
-
-                        {debugInfo && (
-                            <div
-                                className="bg-blue-50 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4"
-                                role="alert"
-                            >
-                                <span className="block sm:inline font-mono text-xs whitespace-pre-wrap">{debugInfo}</span>
-                            </div>
-                        )}
-
-                        {showDebugger && (
-                            <div className="mb-8">
-                                <ApiConnectionDebugger />
-                            </div>
-                        )}
-
-                        {showPathExplorer && (
-                            <div className="mb-8">
-                                <ApiPathExplorer />
-                            </div>
-                        )}
-
-                        <div className="mb-6 flex justify-end space-x-4">
-                            <button
-                                onClick={() => setShowDebugger(!showDebugger)}
-                                className="text-sm text-gray-400 hover:text-gray-300 underline"
-                            >
-                                {showDebugger ? "Hide API Debugger" : "Show API Debugger"}
-                            </button>
-                            <button
-                                onClick={() => setShowPathExplorer(!showPathExplorer)}
-                                className="text-sm text-gray-400 hover:text-gray-300 underline"
-                            >
-                                {showPathExplorer ? "Hide Path Explorer" : "Show Path Explorer"}
-                            </button>
-                        </div>
-
-                        <form className="space-y-6" onSubmit={handleSubmit}>
-                            <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-                                <h3 className="text-3xl font-medium text-white mb-4">Personal Information</h3>
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div>
-                                        <label htmlFor="firstName" className="block text-2xl font-medium text-white">
-                                            First Name <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="firstName"
-                                                name="firstName"
-                                                type="text"
-                                                required
-                                                value={formData.firstName}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-white text-2xl"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="lastName" className="block text-2xl font-medium text-white">
-                                            Last Name <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="lastName"
-                                                name="lastName"
-                                                type="text"
-                                                required
-                                                value={formData.lastName}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="username" className="block text-2xl font-medium text-white">
-                                            Username
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="username"
-                                                name="username"
-                                                type="text"
-                                                value={formData.username}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="contentType" className="block text-2xl font-medium text-white">
-                                            Content Type
-                                        </label>
-                                        <div className="mt-1">
-                                            <select
-                                                id="contentType"
-                                                name="contentType"
-                                                value={formData.contentType}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-white text-2xl"
-                                            >
-                                                <option value="">Select Content Type</option>
-                                                <option value="video">Video Creator</option>
-                                                <option value="photo">Photographer</option>
-                                                <option value="blog">Blogger</option>
-                                                <option value="podcast">Podcaster</option>
-                                                <option value="music">Musician</option>
-                                                <option value="art">Artist</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="sm:col-span-2">
-                                        <label htmlFor="bio" className="block text-2xl font-medium text-white">
-                                            Bio
-                                        </label>
-                                        <div className="mt-1">
-                      <textarea
-                          id="bio"
-                          name="bio"
-                          rows={3}
-                          value={formData.bio}
-                          onChange={handleChange}
-                          className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                          placeholder="Tell us about yourself and your content..."
-                      />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-                                <h3 className="text-3xl font-medium text-white mb-4">Social Media</h3>
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div>
-                                        <label htmlFor="instagram" className="block text-2xl font-medium text-white">
-                                            Instagram
-                                        </label>
-                                        <div className="mt-1 relative rounded-md shadow-sm">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span className="text-gray-500 text-2xl">@</span>
-                                            </div>
-                                            <input
-                                                id="instagram"
-                                                name="socialMedia.instagram"
-                                                type="text"
-                                                value={formData.socialMedia.instagram}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                                placeholder="username"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="youtube" className="block text-2xl font-medium text-white">
-                                            YouTube
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="youtube"
-                                                name="socialMedia.youtube"
-                                                type="text"
-                                                value={formData.socialMedia.youtube}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                                placeholder="Channel URL"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="tiktok" className="block text-2xl font-medium text-white">
-                                            TikTok
-                                        </label>
-                                        <div className="mt-1 relative rounded-md shadow-sm">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span className="text-gray-500 text-2xl">@</span>
-                                            </div>
-                                            <input
-                                                id="tiktok"
-                                                name="socialMedia.tiktok"
-                                                type="text"
-                                                value={formData.socialMedia.tiktok}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                                placeholder="username"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="twitter" className="block text-2xl font-medium text-white">
-                                            Twitter/X
-                                        </label>
-                                        <div className="mt-1 relative rounded-md shadow-sm">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span className="text-gray-500 text-2xl">@</span>
-                                            </div>
-                                            <input
-                                                id="twitter"
-                                                name="socialMedia.twitter"
-                                                type="text"
-                                                value={formData.socialMedia.twitter}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                                placeholder="username"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-900 p-6 rounded-lg shadow-md">
-                                <h3 className="text-3xl font-medium text-white mb-4">Account Information</h3>
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div className="sm:col-span-2">
-                                        <label htmlFor="email" className="block text-2xl font-medium text-white">
-                                            Email Address <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="email"
-                                                name="email"
-                                                type="email"
-                                                autoComplete="email"
-                                                required
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="password" className="block text-2xl font-medium text-white">
-                                            Password <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="password"
-                                                name="password"
-                                                type="password"
-                                                autoComplete="new-password"
-                                                required
-                                                value={formData.password}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                            />
-                                        </div>
-                                        <p className="mt-1 text-xl text-gray-400">Password must be at least 8 characters long</p>
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="confirmPassword" className="block text-2xl font-medium text-white">
-                                            Confirm Password <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="mt-1">
-                                            <input
-                                                id="confirmPassword"
-                                                name="confirmPassword"
-                                                type="password"
-                                                autoComplete="new-password"
-                                                required
-                                                value={formData.confirmPassword}
-                                                onChange={handleChange}
-                                                className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 text-2xl text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center">
-                                <input
-                                    id="termsAgreed"
-                                    name="termsAgreed"
-                                    type="checkbox"
-                                    required
-                                    checked={formData.termsAgreed}
-                                    onChange={handleChange}
-                                    className="size-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor="termsAgreed" className="ml-2 block text-2xl text-white">
-                                    I agree to the{" "}
-                                    <Link href="#" className="text-red-300 hover:text-red-200">
-                                        Terms of Service
-                                    </Link>{" "}
-                                    and{" "}
-                                    <Link href="#" className="text-red-300 hover:text-red-200">
-                                        Privacy Policy
-                                    </Link>
-                                </label>
-                            </div>
-
-                            <div>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-2xl font-medium text-white bg-gradient-to-r from-[#DB134C] to-[#A31113] hover:from-[#C41145] hover:to-[#910F11] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                >
-                                    {loading ? "Creating account..." : "Create account"}
-                                </button>
-                            </div>
-                        </form>
-
-                        <div className="mt-6 text-center">
-                            <Link href="/select-role" className="font-medium text-2xl text-red-300 hover:text-red-200">
-                                Back to selection
-                            </Link>
-                        </div>
-                    </div>
+            <div className="min-h-screen max-w-7xl mx-auto flex flex-col items-center justify-center p-4 py-20">
+                <div className="text-center space-y-4 mb-8">
+                    <h1 className="font-extrabold text-5xl">Content Creator</h1>
+                    <p className="text-xl">Sign up to connect with companies and grow your audience</p>
                 </div>
-            </main>
+
+                {error && (
+                    <div className="w-full max-w-4xl bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="w-full max-w-4xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                Email<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                placeholder="creator@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                Username<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="@creatorname"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                First Name<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Your first name"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                Last Name<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Your last name"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                Password<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="Enter password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">
+                                Repeat password<span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="Repeat password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mb-8">
+                        <div className="space-y-2">
+                            <label className="block font-medium">Content Type</label>
+                            <select
+                                value={contentType}
+                                onChange={(e) => setContentType(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="lifestyle">Lifestyle</option>
+                                <option value="fashion">Fashion</option>
+                                <option value="beauty">Beauty</option>
+                                <option value="fitness">Fitness</option>
+                                <option value="travel">Travel</option>
+                                <option value="food">Food</option>
+                                <option value="gaming">Gaming</option>
+                                <option value="tech">Technology</option>
+                                <option value="education">Education</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mb-8">
+                        <div className="space-y-2">
+                            <label className="block font-medium">Bio</label>
+                            <textarea
+                                placeholder="Tell us about yourself and your content..."
+                                value={bio}
+                                onChange={(e) => setBio(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                            />
+                            <p className="text-gray-500 text-sm">This will be displayed on your profile (max 500 characters)</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8">
+                        <h2 className="font-bold text-2xl">Social Media Profiles</h2>
+                        <p className="text-gray-500">Add your social media handles to connect with companies</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                        <div className="space-y-2">
+                            <label className="block font-medium">Instagram</label>
+                            <div className="flex items-center">
+                                <span className="bg-gray-100 p-3 rounded-l-md border border-r-0 border-gray-300">@</span>
+                                <input
+                                    type="text"
+                                    placeholder="username"
+                                    value={socialMedia.instagram}
+                                    onChange={(e) => handleSocialMediaChange("instagram", e.target.value)}
+                                    className="w-full p-3 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">YouTube</label>
+                            <input
+                                type="text"
+                                placeholder="Channel name or URL"
+                                value={socialMedia.youtube}
+                                onChange={(e) => handleSocialMediaChange("youtube", e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">TikTok</label>
+                            <div className="flex items-center">
+                                <span className="bg-gray-100 p-3 rounded-l-md border border-r-0 border-gray-300">@</span>
+                                <input
+                                    type="text"
+                                    placeholder="username"
+                                    value={socialMedia.tiktok}
+                                    onChange={(e) => handleSocialMediaChange("tiktok", e.target.value)}
+                                    className="w-full p-3 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">X/Twitter</label>
+                            <div className="flex items-center">
+                                <span className="bg-gray-100 p-3 rounded-l-md border border-r-0 border-gray-300">@</span>
+                                <input
+                                    type="text"
+                                    placeholder="username"
+                                    value={socialMedia.twitter}
+                                    onChange={(e) => handleSocialMediaChange("twitter", e.target.value)}
+                                    className="w-full p-3 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">Twitch</label>
+                            <input
+                                type="text"
+                                placeholder="Channel name"
+                                value={socialMedia.twitch}
+                                onChange={(e) => handleSocialMediaChange("twitch", e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block font-medium">Other Platforms</label>
+                            <input
+                                type="text"
+                                placeholder="Other social media platforms"
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex flex-col items-center">
+                        <div className="flex items-center justify-center mb-4">
+                            <label className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    checked={termsAgreed}
+                                    onChange={() => setTermsAgreed(!termsAgreed)}
+                                    className="h-4 w-4"
+                                    required
+                                />
+                                <span className="text-gray-500">I agree with the EULA and terms</span>
+                            </label>
+                        </div>
+                        <button
+                            type="submit"
+                            className="bg-pink-600 text-white py-3 px-8 rounded-md font-medium hover:bg-pink-700 transition-colors w-full md:w-auto"
+                            disabled={loading}
+                        >
+                            {loading ? "Processing..." : "Sign Up"}
+                        </button>
+                        <p className="mt-4">
+                            Already got an account?{" "}
+                            <Link href="/login" className="underline text-pink-600">
+                                Log In
+                            </Link>
+                        </p>
+                    </div>
+                </form>
+            </div>
             <Footer />
         </>
     )

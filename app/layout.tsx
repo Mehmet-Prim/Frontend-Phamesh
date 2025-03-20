@@ -1,42 +1,28 @@
 import type React from "react"
-import type { Metadata } from "next"
-import { Geist_Mono } from "next/font/google"
-import "./globals.css"
-import { Jomhuria } from "next/font/google"
+import { AuthProvider } from "@/components/auth-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/sonner"
-import {AuthProvider} from "@/hooks/useAuth"
+import { Toaster } from "@/components/ui/toaster"
+import "@/app/globals.css"
 
-const jomhuria = Jomhuria({
-    weight: "400",
-    variable: "--font-jomhuria",
-    subsets: ["latin"],
-})
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-})
-
-export const metadata: Metadata = {
+export const metadata = {
     title: "Phamesh",
-    description: "",
+    description: "Phamesh - Moderne Anwendung für Ihr Unternehmen",
 }
 
 export default function RootLayout({
                                        children,
-                                   }: Readonly<{
+                                   }: {
     children: React.ReactNode
-}>) {
+}) {
     return (
-        <html lang="en" suppressHydrationWarning>
-        <body className={`${jomhuria.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <html lang="de" suppressHydrationWarning>
+        <body>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <AuthProvider>
                 {children}
                 <Toaster />
-            </ThemeProvider>
-        </AuthProvider>
+            </AuthProvider>
+        </ThemeProvider>
         </body>
         </html>
     )
